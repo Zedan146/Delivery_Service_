@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Система управления доставкой | {{ user.get_role_display }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <h1 class="display-4 mb-4">Приветсвую, {{ user.get_full_name }}!</h1>
+        
+        {% if user.is_authenticated %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Вы вошли в систему как {{ user.get_role_display }}</h5>
+                    {% if user.is_logistician %}
+                        <p class="card-text">Вы можете управлять заказами и транспортными средствами.</p>
+                    {% elif user.is_courier %}
+                        <p class="card-text">Вы можете просматривать и обновлять статус своих заказов.</p>
+                        <a href="{% url 'couriers:order_list' %}" class="btn btn-primary">Мои заказы</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p class="lead mb-4">Пожалуйста, войдите в систему для доступа к функциям управления доставкой.</p>
+            <a href="{% url 'login' %}" class="btn btn-primary btn-lg">Войти в систему</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Детали заказа {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <h2 class="mb-4">Заказ {{ order.order_number }}</h2>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Информация о заказе</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Клиент:</dt>
+                        <dd class="col-sm-8">{{ order.client.get_full_name }}</dd>
+                        
+                        <dt class="col-sm-4">Телефон:</dt>
+                        <dd class="col-sm-8">{{ order.client.phone_number }}</dd>
+                        
+                        <dt class="col-sm-4">Адрес доставки:</dt>
+                        <dd class="col-sm-8">{{ order.delivery_address }}</dd>
+                        
+                        <dt class="col-sm-4">Сумма заказа:</dt>
+                        <dd class="col-sm-8">{{ order.order_amount }} ₽</dd>
+                        
+                        <dt class="col-sm-4">Дата доставки:</dt>
+                        <dd class="col-sm-8">{{ order.delivery_date }}</dd>
+                        
+                        <dt class="col-sm-4">Текущий статус:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge {% if order.status == 'NEW' %}bg-primary
+                                {% elif order.status == 'ASSIGNED' %}bg-info
+                                {% elif order.status == 'IN_PROGRESS' %}bg-warning
+                                {% elif order.status == 'DELIVERED' %}bg-success
+                                {% else %}bg-danger{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            
+            {% if order.status != 'DELIVERED' and order.status != 'CANCELLED' %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Обновить статус</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="{% url 'couriers:order_detail' order.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="status" class="form-label">Новый статус</label>
+                                <select name="status" id="status" class="form-select">
+                                    {% for status_value, status_label in order.Status.choices %}
+                                        {% if status_value != 'NEW' and status_value != 'ASSIGNED' %}
+                                            <option value="{{ status_value }}" {% if status_value == order.status %}selected{% endif %}>
+                                                {{ status_label }}
+                                            </option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Обновить статус</button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

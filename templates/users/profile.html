@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль - {{ user.get_full_name|default:user.username }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">Профиль пользователя</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Имя пользователя:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ user.username }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Полное имя:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ user.get_full_name|default:"Не указано" }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Email:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ user.email|default:"Не указан" }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Телефон:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ user.phone_number|default:"Не указан" }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Роль:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ user.get_role_display }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Адрес:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ user.address|default:"Не указан"|linebreaks }}
+                    </div>
+                </div>
+                
+                <div class="text-end">
+                    <a href="{% url 'users:profile_edit' %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Редактировать профиль
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

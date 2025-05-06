@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Транспортные средства{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>Транспортные средства</h2>
+    </div>
+    <div class="col text-end">
+        <a href="{% url 'logistics:vehicle_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Добавить транспортное средство
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Тип</th>
+                        <th>Модель</th>
+                        <th>Цвет</th>
+                        <th>Номер</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vehicle in vehicles %}
+                    <tr>
+                        <td>{{ vehicle.get_type_display }}</td>
+                        <td>{{ vehicle.model }}</td>
+                        <td>{{ vehicle.color }}</td>
+                        <td>{{ vehicle.plate_number|default:"-" }}</td>
+                        <td>
+                            <span class="badge {% if vehicle.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ vehicle.is_active|yesno:"Активно,Неактивно" }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'logistics:vehicle_detail' vehicle.pk %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'logistics:vehicle_edit' vehicle.pk %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">Транспортные средства не найдены</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

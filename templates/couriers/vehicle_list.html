@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои транспортные средства{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Мои транспортные средства</h2>
+    
+    {% if vehicles %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Тип</th>
+                        <th>Модель</th>
+                        <th>Номер</th>
+                        <th>Цвет</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vehicle in vehicles %}
+                        <tr>
+                            <td>{{ vehicle.get_vehicle_type_display }}</td>
+                            <td>{{ vehicle.model }}</td>
+                            <td>{{ vehicle.plate_number }}</td>
+                            <td>{{ vehicle.color }}</td>
+                            <td>
+                                <span class="badge {% if vehicle.status == 'ACTIVE' %}bg-success
+                                    {% elif vehicle.status == 'MAINTENANCE' %}bg-warning
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ vehicle.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'logistics:vehicle_detail' vehicle.pk %}" class="btn btn-sm btn-info">
+                                    Подробнее
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            У вас пока нет назначенных транспортных средств.
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои заказы{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Мои заказы</h2>
+    
+    {% if orders %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Номер заказа</th>
+                        <th>Клиент</th>
+                        <th>Адрес доставки</th>
+                        <th>Сумма</th>
+                        <th>Дата доставки</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        <tr>
+                            <td><a href="{% url 'couriers:order_detail' order.pk %}">
+                                {{ order.order_number }}</a></td>
+                            <td>{{ order.client.get_full_name }}</td>
+                            <td>{{ order.delivery_address }}</td>
+                            <td>{{ order.order_amount }} ₽</td>
+                            <td>{{ order.delivery_date }}</td>
+                            <td>
+                                <span class="badge {% if order.status == 'NEW' %}bg-primary
+                                    {% elif order.status == 'ASSIGNED' %}bg-info
+                                    {% elif order.status == 'IN_PROGRESS' %}bg-warning
+                                    {% elif order.status == 'DELIVERED' %}bg-success
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'couriers:order_detail' order.pk %}" class="btn btn-sm btn-primary">
+                                    Детали
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            У вас пока нет назначенных заказов.
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ #{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>Заказ #{{ order.order_number }}</h2>
+    </div>
+    <div class="col text-end">
+        {% if user.is_logistician %}
+            {% if order.status != 'DELIVERED' and order.status != 'CANCELLED' %}
+                <form method="post" action="{% url 'orders:order_cancel' order.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите отменить заказ?')">
+                        <i class="fas fa-ban"></i> Отменить заказ
+                    </button>
+                </form>
+            {% endif %}
+            <a href="{% url 'orders:order_edit' order.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Редактировать
+            </a>
+        {% endif %}
+        <a href="{% url 'orders:order_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад к списку
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Информация о заказе</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Статус:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        <span class="badge {% if order.status == 'NEW' %}bg-primary
+                                       {% elif order.status == 'ASSIGNED' %}bg-info
+                                       {% elif order.status == 'IN_PROGRESS' %}bg-warning
+                                       {% elif order.status == 'DELIVERED' %}bg-success
+                                       {% else %}bg-danger{% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Сумма заказа:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.order_amount }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Стоимость доставки:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.delivery_cost }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Дата доставки:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.delivery_date }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Адрес доставки:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.delivery_address|linebreaks }}
+                    </div>
+                </div>
+                
+                {% if order.notes %}
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Комментарий клиента:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.notes|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Информация о клиенте</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>ФИО:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.client.last_name }} {{ order.client.first_name }} {{ order.client.middle_name }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Телефон:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.client.phone_number }}
+                    </div>
+                </div>
+                
+                {% if order.client.email %}
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Email:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.client.email }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Адрес:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.client.address|linebreaks }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Информация о курьере</h5>
+                {% if order.status != 'DELIVERED' and order.status != 'CANCELLED' %}
+                    <div>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assignCourierModal">
+                            <i class="fas fa-user-plus"></i> {% if order.courier %}Сменить курьера{% else %}Назначить курьера{% endif %}
+                        </button>
+                        {% if order.courier %}
+                            <form method="post" action="{% url 'orders:order_assign_courier' order.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="courier" value="None">
+                                <button type="submit" class="btn btn-warning" onclick="return confirm('Вы уверены, что хотите снять курьера с заказа?')">
+                                    <i class="fas fa-user-minus"></i> Снять курьера
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            {% if order.courier %}
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>ФИО:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.courier.get_full_name }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Телефон:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.courier.phone_number }}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card-footer">Курьер еще не назначен</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if user.is_logistician %}
+<!-- Модальное окно для назначения курьера -->
+<div class="modal fade" id="assignCourierModal" tabindex="-1" aria-labelledby="assignCourierModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignCourierModalLabel">{% if order.courier %}Сменить курьера{% else %}Назначить курьера{% endif %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'orders:order_assign_courier' order.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="courier" class="form-label">Выберите курьера</label>
+                        <select name="courier" id="courier" class="form-select" required>
+                            <option value="None">---------</option>
+                            {% for courier in available_couriers %}
+                                <option value="{{ courier.id }}" {% if order.courier.id == courier.id %}selected{% endif %}>
+                                    {{ courier.get_full_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

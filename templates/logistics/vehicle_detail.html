@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}{{ vehicle.get_type_display }} - {{ vehicle.model }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>{{ vehicle.get_type_display }} - {{ vehicle.model }}</h2>
+    </div>
+    <div class="col text-end">
+        <a href="{% url 'logistics:vehicle_edit' vehicle.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Редактировать
+        </a>
+        <a href="{% url 'logistics:vehicle_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад к списку
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Информация о транспортном средстве</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Тип:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ vehicle.get_type_display }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Модель:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ vehicle.model }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Цвет:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ vehicle.color }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Номер:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ vehicle.plate_number|default:"Не указан" }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Статус:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        <span class="badge {% if vehicle.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ vehicle.is_active|yesno:"Активно,Неактивно" }}
+                        </span>
+                    </div>
+                </div>
+                
+                {% if vehicle.description %}
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <strong>Описание:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ vehicle.description|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Текущие курьеры</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Курьер</th>
+                                <th>Дата назначения</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for courier_vehicle in vehicle.couriervehicle_set.filter(is_current=True) %}
+                            <tr>
+                                <td>{{ courier_vehicle.courier.get_full_name }}</td>
+                                <td>{{ courier_vehicle.assigned_date|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center">Нет назначенных курьеров</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
