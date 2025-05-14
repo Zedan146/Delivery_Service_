@@ -9,15 +9,20 @@ from users.models import CustomUser as User
 
 @login_required
 def order_list(request):
-    """Представление для просмотра списка заказов"""
+    """Представление для просмотра списка заказов с фильтрацией по статусу для логиста"""
     if request.user.is_logistician():
-        orders = Order.objects.all()
+        status = request.GET.get('status', 'NEW')
+        if status == 'ALL':
+            orders = Order.objects.all()
+        else:
+            orders = Order.objects.filter(status=status)
     elif request.user.is_courier():
         orders = Order.objects.filter(courier=request.user)
+        status = None
     else:
         return HttpResponseForbidden()
     
-    return render(request, 'orders/order_list.html', {'orders': orders})
+    return render(request, 'orders/order_list.html', {'orders': orders, 'status': status})
 
 @login_required
 def order_create(request):
@@ -43,8 +48,9 @@ def order_detail(request, pk):
     order = get_object_or_404(Order, pk=pk)
     
     # Проверяем права доступа
-    if not (request.user.is_logistician or 
+    if not (request.user.is_logistician or request.user.is_superuser or 
             (request.user.is_courier and order.courier == request.user)):
+        messages.error(request, 'У вас нет прав для просмотра этого заказа')
         return HttpResponseForbidden()
     
     context = {
@@ -52,7 +58,7 @@ def order_detail(request, pk):
     }
     
     # Добавляем список доступных курьеров для логиста
-    if request.user.is_logistician:
+    if request.user.is_logistician or request.user.is_superuser:
         context['available_couriers'] = User.objects.filter(role='COURIER', is_active=True)
     
     return render(request, 'orders/order_detail.html', context)
@@ -84,7 +90,7 @@ def client_list(request):
         return redirect('home')
     
     clients = Client.objects.all()
-    return render(request, 'orders/client_list.html', {'clients': clients})
+    return render(request, 'clients/client_list.html', {'clients': clients})
 
 @login_required
 def client_create(request):
@@ -102,7 +108,7 @@ def client_create(request):
     else:
         form = ClientForm()
     
-    return render(request, 'orders/client_form.html', {'form': form, 'title': 'Создание клиента'})
+    return render(request, 'clients/client_form.html', {'form': form, 'title': 'Создание клиента'})
 
 @login_required
 def client_detail(request, pk):
@@ -112,7 +118,7 @@ def client_detail(request, pk):
         return redirect('orders:client_list')
     
     client = get_object_or_404(Client, pk=pk)
-    return render(request, 'orders/client_detail.html', {'client': client})
+    return render(request, 'clients/client_detail.html', {'client': client})
 
 @login_required
 def client_edit(request, pk):
@@ -131,7 +137,7 @@ def client_edit(request, pk):
     else:
         form = ClientForm(instance=client)
     
-    return render(request, 'orders/client_form.html', {'form': form, 'title': 'Редактирование клиента'})
+    return render(request, 'clients/client_form.html', {'form': form, 'title': 'Редактирование клиента'})
 
 def is_courier(user):
     return user.role == 'COURIER'
@@ -139,6 +145,21 @@ def is_courier(user):
 @login_required
 @user_passes_test(is_courier)
 def courier_orders(request):
+    if request.method == 'POST':
+        order_id = request.POST.get('order_id')
+        action = request.POST.get('action')
+        order = get_object_or_404(Order, pk=order_id, courier=request.user)
+        if action == 'take_in_progress' and order.status == 'ASSIGNED':
+            order.status = 'IN_PROGRESS'
+            order.save()
+            messages.success(request, f'Заказ {order.order_number} взят в работу')
+        elif action == 'mark_delivered' and order.status == 'IN_PROGRESS':
+            order.status = 'DELIVERED'
+            order.save()
+            messages.success(request, f'Заказ {order.order_number} отмечен как доставленный')
+        else:
+            messages.error(request, 'Недопустимое действие для этого заказа')
+        return redirect('orders:courier_orders')
     orders = Order.objects.filter(courier=request.user).order_by('-created_at')
     return render(request, 'orders/courier_orders.html', {'orders': orders})
 
@@ -146,14 +167,40 @@ def courier_orders(request):
 @user_passes_test(is_courier)
 def courier_order_detail(request, pk):
     order = get_object_or_404(Order, pk=pk, courier=request.user)
+    
     if request.method == 'POST':
         new_status = request.POST.get('status')
+        current_status = order.status
+        
+        # Проверяем корректность перехода статуса
         if new_status in dict(Order.Status.choices):
-            order.status = new_status
-            order.save()
-            messages.success(request, 'Статус заказа успешно обновлен')
+            # Курьер может менять статус только по определенным правилам
+            if current_status == 'ASSIGNED' and new_status == 'IN_PROGRESS':
+                order.status = new_status
+                order.save()
+                messages.success(request, 'Статус заказа изменен на "В процессе"')
+            elif current_status == 'IN_PROGRESS' and new_status == 'DELIVERED':
+                order.status = new_status
+                order.save()
+                messages.success(request, 'Заказ успешно доставлен')
+            elif new_status == 'CANCELLED':
+                messages.error(request, 'Курьер не может отменять заказы')
+            else:
+                messages.error(request, 'Недопустимое изменение статуса')
             return redirect('orders:courier_orders')
-    return render(request, 'orders/courier_order_detail.html', {'order': order})
+    
+    # Определяем доступные статусы для текущего заказа
+    available_statuses = []
+    if order.status == 'ASSIGNED':
+        available_statuses = [('IN_PROGRESS', 'В процессе')]
+    elif order.status == 'IN_PROGRESS':
+        available_statuses = [('DELIVERED', 'Доставлен')]
+    
+    context = {
+        'order': order,
+        'available_statuses': available_statuses
+    }
+    return render(request, 'orders/courier_order_detail.html', context)
 
 @login_required
 def order_delete(request, pk):
@@ -166,7 +213,8 @@ def order_delete(request, pk):
 
 @login_required
 def order_cancel(request, pk):
-    if not request.user.is_logistician:
+    if not (request.user.is_logistician or request.user.is_superuser):
+        messages.error(request, 'У вас нет прав для отмены заказов')
         return HttpResponseForbidden()
     
     order = get_object_or_404(Order, pk=pk)

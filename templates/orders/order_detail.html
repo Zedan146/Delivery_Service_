@@ -8,7 +8,7 @@
         <h2>Заказ #{{ order.order_number }}</h2>
     </div>
     <div class="col text-end">
-        {% if user.is_logistician %}
+        {% if user.is_logistician or user.is_superuser %}
             {% if order.status != 'DELIVERED' and order.status != 'CANCELLED' %}
                 <form method="post" action="{% url 'orders:order_cancel' order.pk %}" class="d-inline">
                     {% csrf_token %}

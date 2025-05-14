@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Назначения транспортных средств курьерам{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Назначения транспортных средств</h1>
+        <a href="{% url 'logistics:courier_vehicle_assign' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Назначить транспортное средство
+        </a>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Курьер</th>
+                            <th>Транспорт</th>
+                            <th>Модель</th>
+                            <th>Цвет</th>
+                            <th>Номер</th>
+                            <th>Дата назначения</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cv in courier_vehicles %}
+                        <tr>
+                            <td>{{ cv.courier.get_full_name }}</td>
+                            <td>{{ cv.vehicle.get_type_display }}</td>
+                            <td>{{ cv.vehicle.model }}</td>
+                            <td>{{ cv.vehicle.color }}</td>
+                            <td>{{ cv.vehicle.plate_number|default:"-" }}</td>
+                            <td>{{ cv.assigned_date|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <form method="post" action="{% url 'logistics:courier_vehicle_unassign' cv.pk %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Снять транспортное средство с курьера?');">
+                                        <i class="fas fa-times"></i> Снять
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">Нет назначений</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

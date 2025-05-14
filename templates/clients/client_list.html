@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Список клиентов{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Список клиентов</h1>
+        <a href="{% url 'orders:client_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Добавить клиента
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if clients %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Имя и фамилия</th>
+                        <th>Телефон</th>
+                        <th>Email</th>
+                        <th>Адрес</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                        <tr>
+                            <td>{{ client.id }}</td>
+                            <td>
+                                <a href="{% url 'orders:client_detail' client.pk %}">
+                                {{ client.first_name }} {{ client.last_name }}</a>
+                            </td>
+                            <td>{{ client.phone_number }}</td>
+                            <td>
+                                {% if client.email %}
+                                    {{ client.email }}
+                                {% else %}
+                                    <span class="text-muted">нет</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ client.address }}</td>
+                            <td>
+                                <a href="{% url 'orders:client_detail' client.pk %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'orders:client_edit' client.pk %}" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            Список клиентов пуст
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

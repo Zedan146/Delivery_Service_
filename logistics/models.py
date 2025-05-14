@@ -5,19 +5,32 @@ from orders.models import Order
 class Vehicle(models.Model):
     """Модель для хранения информации о транспортных средствах"""
     class Type(models.TextChoices):
-        BICYCLE = 'BICYCLE', 'Bicycle'
-        MOTORCYCLE = 'MOTORCYCLE', 'Motorcycle'
-        CAR = 'CAR', 'Car'
+        BICYCLE = 'BICYCLE', 'Велосипед'
+        MOTORCYCLE = 'MOTORCYCLE', 'Мотоцикл'
+        CAR = 'CAR', 'Машина'
+        TRUCK = 'TRUCK', 'Грузовик'
     
-    type = models.CharField(max_length=20, choices=Type.choices)
-    model = models.CharField(max_length=100)
-    color = models.CharField(max_length=50)
-    plate_number = models.CharField(max_length=20, blank=True)
-    description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
+    type = models.CharField(max_length=20, choices=Type.choices, verbose_name='Тип транспортного средства')
+    model = models.CharField(max_length=100, verbose_name='Модель')
+    color = models.CharField(max_length=50, verbose_name='Цвет')
+    plate_number = models.CharField(max_length=20, blank=True, verbose_name='Номер машины')
+    description = models.TextField(blank=True, verbose_name='Описание')
+    is_active = models.BooleanField(default=True, verbose_name='Активность')
     
     def __str__(self):
         return f"{self.get_type_display()} - {self.model}"
+
+    def get_status_display_ext(self):
+        if not self.is_active:
+            return 'В ремонте', 'danger'
+        current_assignment = self.couriervehicle_set.filter(is_current=True).first()
+        if not current_assignment:
+            return 'Не назначено', 'secondary'
+        # Проверяем, есть ли у курьера активный заказ (IN_PROGRESS)
+        in_progress = Order.objects.filter(courier=current_assignment.courier, status=Order.Status.IN_PROGRESS).exists()
+        if in_progress:
+            return 'В работе', 'primary'
+        return 'Назначено', 'success'
 
 
 class CourierVehicle(models.Model):

@@ -5,6 +5,10 @@
 {% block content %}
 <div class="container">
     <h2 class="mb-4">Мои заказы</h2>
+    <div class="mb-3">
+        <a href="?show=active" class="btn btn-outline-primary{% if show != 'delivered' %} active{% endif %}">Текущие</a>
+        <a href="?show=delivered" class="btn btn-outline-success{% if show == 'delivered' %} active{% endif %}">Доставленные</a>
+    </div>
     
     {% if orders %}
         <div class="table-responsive">
@@ -38,9 +42,24 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="{% url 'orders:courier_order_detail' order.pk %}" class="btn btn-sm btn-primary">
+                                <a href="{% url 'couriers:order_detail' order.pk %}" class="btn btn-sm btn-primary">
                                     Детали
                                 </a>
+                                {% if order.status == 'ASSIGNED' %}
+                                    <form method="post" action="" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                        <input type="hidden" name="action" value="take_in_progress">
+                                        <button type="submit" class="btn btn-sm btn-warning">Взять в работу</button>
+                                    </form>
+                                {% elif order.status == 'IN_PROGRESS' %}
+                                    <form method="post" action="" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                        <input type="hidden" name="action" value="mark_delivered">
+                                        <button type="submit" class="btn btn-sm btn-success">Доставлен</button>
+                                    </form>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}

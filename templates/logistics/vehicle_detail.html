@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load crispy_forms_tags %}
 
 {% block title %}{{ vehicle.get_type_display }} - {{ vehicle.model }}{% endblock %}
 
@@ -65,9 +66,11 @@
                         <strong>Статус:</strong>
                     </div>
                     <div class="col-sm-8">
-                        <span class="badge {% if vehicle.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                            {{ vehicle.is_active|yesno:"Активно,Неактивно" }}
+                        {% with status=vehicle.get_status_display_ext %}
+                        <span class="badge bg-{{ status.1 }}">
+                            {{ status.0 }}
                         </span>
+                        {% endwith %}
                     </div>
                 </div>
                 
@@ -87,8 +90,13 @@
     
     <div class="col-md-6">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Текущие курьеры</h5>
+                {% if not current_courier_vehicles %}
+                <a href="{% url 'logistics:courier_vehicle_assign' %}" class="btn btn-primary">
+                    Назначить курьера
+                </a>
+                {% endif %}
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -97,22 +105,32 @@
                             <tr>
                                 <th>Курьер</th>
                                 <th>Дата назначения</th>
+                                <th>Действия</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for courier_vehicle in vehicle.couriervehicle_set.filter(is_current=True) %}
+                            {% for courier_vehicle in current_courier_vehicles %}
                             <tr>
                                 <td>{{ courier_vehicle.courier.get_full_name }}</td>
                                 <td>{{ courier_vehicle.assigned_date|date:"d.m.Y H:i" }}</td>
+                                <td>
+                                    <form method="post" action="{% url 'logistics:courier_vehicle_unassign' courier_vehicle.pk %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Снять курьера с транспорта?');">
+                                            <i class="fas fa-times"></i> Снять
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="2" class="text-center">Нет назначенных курьеров</td>
+                                <td colspan="3" class="text-center">Нет назначенных курьеров</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                <hr>
             </div>
         </div>
     </div>

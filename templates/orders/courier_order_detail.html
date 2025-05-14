@@ -43,7 +43,7 @@
                 </div>
             </div>
             
-            {% if order.status != 'DELIVERED' and order.status != 'CANCELLED' %}
+            {% if available_statuses %}
                 <div class="card">
                     <div class="card-header">
                         <h5 class="card-title mb-0">Обновить статус</h5>
@@ -54,12 +54,8 @@
                             <div class="mb-3">
                                 <label for="status" class="form-label">Новый статус</label>
                                 <select name="status" id="status" class="form-select">
-                                    {% for status_value, status_label in order.Status.choices %}
-                                        {% if status_value != 'NEW' and status_value != 'ASSIGNED' %}
-                                            <option value="{{ status_value }}" {% if status_value == order.status %}selected{% endif %}>
-                                                {{ status_label }}
-                                            </option>
-                                        {% endif %}
+                                    {% for status_value, status_label in available_statuses %}
+                                        <option value="{{ status_value }}">{{ status_label }}</option>
                                     {% endfor %}
                                 </select>
                             </div>

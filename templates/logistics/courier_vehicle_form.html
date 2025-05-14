@@ -1,9 +1,7 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 
-{% block title %}
-    {% if form.instance.pk %}Редактирование{% else %}Добавление{% endif %} транспортного средства
-{% endblock %}
+{% block title %}Назначить транспортное средство курьеру{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -11,15 +9,9 @@
         <div class="col-md-8 offset-md-2">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0">
-                        {% if form.instance.pk %}
-                            Редактирование транспортного средства
-                        {% else %}
-                            Добавление транспортного средства
-                        {% endif %}
-                    </h2>
-                    <a href="{% url 'logistics:vehicle_list' %}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> К списку
+                    <h2 class="mb-0">Назначить транспортное средство</h2>
+                    <a href="{% url 'logistics:courier_vehicle_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> К списку назначений
                     </a>
                 </div>
                 <div class="card-body">
@@ -30,18 +22,12 @@
                             </div>
                         {% endfor %}
                     {% endif %}
-
                     <form method="post" novalidate>
                         {% csrf_token %}
                         {{ form|crispy }}
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i>
-                                {% if form.instance.pk %}
-                                    Сохранить изменения
-                                {% else %}
-                                    Добавить транспортное средство
-                                {% endif %}
+                                <i class="fas fa-save"></i> Назначить
                             </button>
                         </div>
                     </form>

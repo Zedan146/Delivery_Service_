@@ -14,6 +14,7 @@ class CustomUser(AbstractUser):
     )
     phone_number = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='Аватар')
     
     def is_admin(self):
         return self.role == self.Role.ADMIN

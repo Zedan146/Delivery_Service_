@@ -16,6 +16,17 @@
     {% endif %}
 </div>
 
+{% if user.is_logistician %}
+<div class="mb-3">
+    <a href="?status=NEW" class="btn btn-outline-primary{% if status == 'NEW' %} active{% endif %}">Новые</a>
+    <a href="?status=ASSIGNED" class="btn btn-outline-info{% if status == 'ASSIGNED' %} active{% endif %}">Назначен</a>
+    <a href="?status=IN_PROGRESS" class="btn btn-outline-warning{% if status == 'IN_PROGRESS' %} active{% endif %}">В процессе</a>
+    <a href="?status=DELIVERED" class="btn btn-outline-success{% if status == 'DELIVERED' %} active{% endif %}">Доставлен</a>
+    <a href="?status=CANCELLED" class="btn btn-outline-danger{% if status == 'CANCELLED' %} active{% endif %}">Отменен</a>
+    <a href="?status=ALL" class="btn btn-outline-secondary{% if status == 'ALL' %} active{% endif %}">Все</a>
+</div>
+{% endif %}
+
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">

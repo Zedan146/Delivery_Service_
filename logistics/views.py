@@ -38,7 +38,30 @@ def vehicle_detail(request, pk):
         return redirect('logistics:vehicle_list')
     
     vehicle = get_object_or_404(Vehicle, pk=pk)
-    return render(request, 'logistics/vehicle_detail.html', {'vehicle': vehicle})
+    current_courier_vehicles = vehicle.couriervehicle_set.filter(is_current=True)
+
+    from .forms import CourierVehicleForm
+    # Форма назначения курьера на этот транспорт
+    if request.method == 'POST':
+        form = CourierVehicleForm(request.POST)
+        if form.is_valid():
+            courier_vehicle = form.save(commit=False)
+            courier_vehicle.vehicle = vehicle
+            # Снимаем старое назначение с курьера
+            CourierVehicle.objects.filter(courier=courier_vehicle.courier, is_current=True).update(is_current=False)
+            courier_vehicle.is_current = True
+            courier_vehicle.save()
+            messages.success(request, 'Курьер успешно назначен на транспортное средство')
+            return redirect('logistics:vehicle_detail', pk=vehicle.pk)
+    else:
+        form = CourierVehicleForm()
+        form.fields['vehicle'].queryset = Vehicle.objects.filter(pk=vehicle.pk)
+
+    return render(request, 'logistics/vehicle_detail.html', {
+        'vehicle': vehicle,
+        'current_courier_vehicles': current_courier_vehicles,
+        'form': form,
+    })
 
 @login_required
 def vehicle_edit(request, pk):
@@ -69,6 +92,7 @@ def courier_vehicle_list(request):
 
 @login_required
 def courier_vehicle_assign(request):
+    """Назначение транспортного средства курьеру"""
     if not request.user.is_logistician():
         messages.error(request, 'У вас нет прав для назначения транспортных средств')
         return redirect('logistics:courier_vehicle_list')
@@ -93,6 +117,18 @@ def courier_vehicle_assign(request):
         form = CourierVehicleForm()
     
     return render(request, 'logistics/courier_vehicle_form.html', {'form': form, 'title': 'Назначение транспортного средства'})
+
+@login_required
+def courier_vehicle_unassign(request, pk):
+    if not request.user.is_logistician():
+        messages.error(request, 'У вас нет прав для снятия транспортного средства')
+        return redirect('logistics:courier_vehicle_list')
+    courier_vehicle = get_object_or_404(CourierVehicle, pk=pk, is_current=True)
+    if request.method == 'POST':
+        courier_vehicle.is_current = False
+        courier_vehicle.save()
+        messages.success(request, 'Транспортное средство успешно снято с курьера')
+    return redirect('logistics:courier_vehicle_list')
 
 @login_required
 def delivery_report_list(request):

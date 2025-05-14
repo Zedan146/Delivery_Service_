@@ -14,7 +14,7 @@ def profile(request):
 def profile_edit(request):
     """Представление для редактирования профиля пользователя"""
     if request.method == 'POST':
-        form = CustomUserChangeForm(request.POST, instance=request.user)
+        form = CustomUserChangeForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Профиль успешно обновлен')

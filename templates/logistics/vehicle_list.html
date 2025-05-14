@@ -36,9 +36,11 @@
                         <td>{{ vehicle.color }}</td>
                         <td>{{ vehicle.plate_number|default:"-" }}</td>
                         <td>
-                            <span class="badge {% if vehicle.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                                {{ vehicle.is_active|yesno:"Активно,Неактивно" }}
+                            {% with status=vehicle.get_status_display_ext %}
+                            <span class="badge bg-{{ status.1 }}">
+                                {{ status.0 }}
                             </span>
+                            {% endwith %}
                         </td>
                         <td>
                             <a href="{% url 'logistics:vehicle_detail' vehicle.pk %}" class="btn btn-sm btn-info">
