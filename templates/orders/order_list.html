@@ -51,7 +51,7 @@
                             <td><a href="{% url 'orders:order_detail' order.pk %}">
                                 {{ order.order_number }}</a></td>
                             <td>{{ order.client }}</td>
-                            <td>{{ order.delivery_address }}</td>
+                            <td>{{ order.delivery_address.address }}</td>
                             <td>{{ order.order_amount }}</td>
                             <td>{{ order.delivery_cost }}</td>
                             <td>

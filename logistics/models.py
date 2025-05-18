@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from orders.models import Order
 from django.utils import timezone
+from django.core.cache import cache
 
 class Vehicle(models.Model):
     """Модель для хранения информации о транспортных средствах"""
@@ -16,27 +17,39 @@ class Vehicle(models.Model):
     color = models.CharField(max_length=50, verbose_name='Цвет')
     plate_number = models.CharField(max_length=20, blank=True, verbose_name='Номер машины')
     description = models.TextField(blank=True, verbose_name='Описание')
-    is_active = models.BooleanField(default=True, verbose_name='Активность')
-    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
+    is_active = models.BooleanField(default=True, verbose_name='Активность', db_index=True)
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания', db_index=True)
     updated_at = models.DateTimeField(default=timezone.now, verbose_name='Дата обновления')
     
     def __str__(self):
         return f"{self.get_type_display()} - {self.model}"
 
     def get_status_display_ext(self):
+        cache_key = f'vehicle_status_{self.id}'
+        cached_status = cache.get(cache_key)
+        if cached_status:
+            return cached_status
+
         if not self.is_active:
-            return 'В ремонте', 'danger'
-        current_assignment = self.couriervehicle_set.filter(is_current=True).first()
-        if not current_assignment:
-            return 'Не назначено', 'secondary'
-        # Проверяем, есть ли у курьера активный заказ (IN_PROGRESS)
-        in_progress = Order.objects.filter(courier=current_assignment.courier, status=Order.Status.IN_PROGRESS).exists()
-        if in_progress:
-            return 'В работе', 'primary'
-        return 'Назначено', 'success'
+            status = ('В ремонте', 'danger')
+        else:
+            current_assignment = self.couriervehicle_set.filter(is_current=True).first()
+            if not current_assignment:
+                status = ('Не назначено', 'secondary')
+            else:
+                in_progress = Order.objects.filter(
+                    courier=current_assignment.courier,
+                    status=Order.Status.IN_PROGRESS
+                ).exists()
+                status = ('В работе', 'primary') if in_progress else ('Назначено', 'success')
+        
+        cache.set(cache_key, status, 300)  # Кэшируем на 5 минут
+        return status
 
     def save(self, *args, **kwargs):
         self.updated_at = timezone.now()
+        # Инвалидируем кэш при сохранении
+        cache.delete(f'vehicle_status_{self.id}')
         super().save(*args, **kwargs)
 
     class Meta:

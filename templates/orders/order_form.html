@@ -32,4 +32,40 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clientSelect = document.getElementById('id_client');
+    const addressSelect = document.getElementById('id_delivery_address');
+
+    function updateAddresses() {
+        const clientId = clientSelect.value;
+        if (clientId) {
+            fetch(`/orders/get-client-addresses/?client_id=${clientId}`)
+                .then(response => response.json())
+                .then(data => {
+                    addressSelect.innerHTML = '';
+                    data.forEach(addr => {
+                        const option = document.createElement('option');
+                        option.value = addr.id;
+                        option.textContent = addr.address;
+                        addressSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        } else {
+            addressSelect.innerHTML = '';
+        }
+    }
+
+    clientSelect.addEventListener('change', updateAddresses);
+    
+    // Загружаем адреса при загрузке страницы, если клиент уже выбран
+    if (clientSelect.value) {
+        updateAddresses();
+    }
+});
+</script>
 {% endblock %} 

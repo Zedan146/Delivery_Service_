@@ -6,7 +6,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'delivery_system.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model
-from orders.models import Client, Order
+from clients.models import Client
+from orders.models import Order
 from logistics.models import Vehicle, CourierVehicle
 from django.utils import timezone
 from datetime import timedelta

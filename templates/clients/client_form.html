@@ -59,9 +59,28 @@
                             {{ form.email|as_crispy_field }}
                         </div>
 
-                        <div class="mb-3">
-                            {{ form.address|as_crispy_field }}
-                        </div>
+                        <h5>Адреса клиента</h5>
+                        {% if formset.non_form_errors %}
+                            <div class="alert alert-danger">
+                                {{ formset.non_form_errors }}
+                            </div>
+                        {% endif %}
+                        {{ formset.management_form }}
+                        {% for address_form in formset %}
+                            {% if address_form.errors %}
+                                <div class="alert alert-danger">
+                                    {{ address_form.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="card mb-2 p-2">
+                                {{ address_form.id }}
+                                {{ address_form.address|as_crispy_field }}
+                                {{ address_form.is_default|as_crispy_field }}
+                                {% if address_form.instance.pk %}
+                                    <label>Удалить: {{ address_form.DELETE }}</label>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <button type="submit" class="btn btn-primary">

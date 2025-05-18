@@ -2,14 +2,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Q
-from django.http import HttpResponseForbidden, HttpResponse
+from django.http import HttpResponseForbidden, HttpResponse, JsonResponse
 from django.utils import timezone
-from .models import Order, Client
-from .forms import OrderForm, ClientForm
+from .models import Order
+from clients.models import Client, ClientAddress
+from .forms import OrderForm
+from clients.forms import ClientForm, ClientAddressInlineFormSet
 from users.models import CustomUser as User
 from logistics.models import DeliveryReport, CourierVehicle
 from django.template.loader import render_to_string
-from weasyprint import HTML
+from weasyprint import HTML, CSS
 from django.conf import settings
 import qrcode
 import base64
@@ -81,7 +83,7 @@ def order_detail(request, pk):
 @login_required
 def order_edit(request, pk):
     """Представление для редактирования заказа"""
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для редактирования заказов')
         return redirect('orders:order_list')
     
@@ -116,14 +118,22 @@ def client_create(request):
     
     if request.method == 'POST':
         form = ClientForm(request.POST)
-        if form.is_valid():
+        formset = ClientAddressInlineFormSet(request.POST)
+        if form.is_valid() and formset.is_valid():
             client = form.save()
+            formset.instance = client
+            formset.save()
             messages.success(request, 'Клиент успешно создан')
             return redirect('orders:client_detail', pk=client.pk)
     else:
         form = ClientForm()
+        formset = ClientAddressInlineFormSet()
     
-    return render(request, 'clients/client_form.html', {'form': form, 'title': 'Создание клиента'})
+    return render(request, 'clients/client_form.html', {
+        'form': form,
+        'formset': formset,
+        'title': 'Создание клиента'
+    })
 
 @login_required
 def client_detail(request, pk):
@@ -138,21 +148,27 @@ def client_detail(request, pk):
 @login_required
 def client_edit(request, pk):
     """Представление для редактирования информации о клиенте"""
+    client = get_object_or_404(Client, pk=pk)
     if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для редактирования клиентов')
         return redirect('orders:client_list')
-    
-    client = get_object_or_404(Client, pk=pk)
+
     if request.method == 'POST':
         form = ClientForm(request.POST, instance=client)
-        if form.is_valid():
+        formset = ClientAddressInlineFormSet(request.POST, instance=client)
+        if form.is_valid() and formset.is_valid():
             form.save()
-            messages.success(request, 'Информация о клиенте успешно обновлена')
+            formset.save()
+            messages.success(request, 'Клиент успешно обновлен')
             return redirect('orders:client_detail', pk=client.pk)
     else:
         form = ClientForm(instance=client)
-    
-    return render(request, 'clients/client_form.html', {'form': form, 'title': 'Редактирование клиента'})
+        formset = ClientAddressInlineFormSet(instance=client)
+
+    return render(request, 'clients/client_form.html', {
+        'form': form,
+        'formset': formset,
+    })
 
 def is_courier(user):
     return user.role == 'COURIER'
@@ -297,127 +313,141 @@ def order_assign_courier(request, pk):
 
 @login_required
 def order_receipt_pdf(request, pk):
-    """Генерация PDF-квитанции для заказа."""
-    if not (request.user.is_logistician or request.user.is_admin):
-        messages.error(request, 'У вас нет прав для просмотра квитанций')
-        return redirect('orders:order_list')
-    
+    """Представление для генерации PDF-квитанции заказа"""
     order = get_object_or_404(Order, pk=pk)
     
-    # Генерируем QR-код
+    # Проверяем права доступа
+    if not (request.user.is_logistician() or request.user.is_admin() or 
+            (request.user.is_courier() and order.courier == request.user)):
+        messages.error(request, 'У вас нет прав для просмотра квитанции')
+        return HttpResponseForbidden()
+    
+    # Генерируем QR-код с информацией о заказе
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
         border=4,
     )
-    # В QR-код помещаем URL для отслеживания заказа
-    tracking_url = request.build_absolute_uri(
-        reverse('orders:order_detail', kwargs={'pk': order.pk})
-    )
-    qr.add_data(tracking_url)
+    qr.add_data(f'Заказ #{order.order_number}\n'
+                f'Статус: {order.get_status_display()}\n'
+                f'Клиент: {order.client.get_full_name()}\n'
+                f'Адрес: {order.delivery_address.address}\n'
+                f'Дата доставки: {order.delivery_date}')
     qr.make(fit=True)
     
     # Создаем изображение QR-кода
     qr_image = qr.make_image(fill_color="black", back_color="white")
     
     # Конвертируем изображение в base64
-    buffer = BytesIO()
-    qr_image.save(buffer, format='PNG')
-    qr_code = base64.b64encode(buffer.getvalue()).decode()
+    buffered = BytesIO()
+    qr_image.save(buffered, format="PNG")
+    qr_code = base64.b64encode(buffered.getvalue()).decode()
     
-    # Рендерим HTML
-    html_string = render_to_string('orders/print/order_receipt.html', {
+    # Рендерим HTML-шаблон
+    html_string = render_to_string('print/order_receipt.html', {
         'order': order,
         'qr_code': qr_code,
     })
     
-    # Абсолютный путь к CSS
+    # Абсолютный путь к CSS для WeasyPrint
     css_path = os.path.join(settings.BASE_DIR, 'static', 'css', 'print_forms.css')
-    html = HTML(string=html_string)
-    pdf = html.write_pdf(stylesheets=[css_path])
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    pdf = html.write_pdf(stylesheets=[CSS(filename=css_path)])
     
-    filename = f'order_receipt_{order.order_number}.pdf'
+    # Формируем имя файла
+    filename = f'order_{order.order_number}_receipt.pdf'
+    
+    # Создаем HTTP-ответ
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
 
 @login_required
 def delivery_report_pdf(request):
-    """Генерация PDF-отчета по выполненным доставкам."""
+    """Представление для генерации PDF-отчета по доставкам"""
     if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра отчетов')
-        return redirect('orders:order_list')
+        return HttpResponseForbidden()
     
-    # Получаем параметры периода из GET-запроса
-    end_date = request.GET.get('end_date', timezone.now().date())
-    if isinstance(end_date, str):
-        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    # Получаем параметры фильтрации
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
     
-    start_date = request.GET.get('start_date', end_date - timedelta(days=30))
-    if isinstance(start_date, str):
+    # Если даты не указаны, используем последние 30 дней
+    if not start_date:
+        start_date = (timezone.now() - timedelta(days=30)).date()
+    else:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
     
-    # Получаем выполненные доставки за период
-    deliveries = Order.objects.filter(
-        status='DELIVERED',
-        delivery_date__range=[start_date, end_date]
-    ).select_related('courier')
+    if not end_date:
+        end_date = timezone.now().date()
+    else:
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     
-    # Общая статистика
-    total_deliveries = deliveries.count()
-    total_order_amount = deliveries.aggregate(total=Sum('order_amount'))['total'] or 0
-    total_delivery_cost = deliveries.aggregate(total=Sum('delivery_cost'))['total'] or 0
-    total_amount = total_order_amount + total_delivery_cost
+    # Получаем заказы за указанный период
+    orders = Order.objects.filter(
+        delivery_date__range=[start_date, end_date]
+    ).select_related('client', 'courier', 'delivery_address')
+    
+    # Статистика по статусам
+    status_stats = {}
+    for status, _ in Order.Status.choices:
+        count = orders.filter(status=status).count()
+        if count > 0:
+            status_stats[dict(Order.Status.choices)[status]] = count
     
     # Статистика по курьерам
-    courier_stats = []
-    courier_deliveries = deliveries.values('courier__first_name', 'courier__last_name').annotate(
-        deliveries_count=Count('id'),
-        order_amount=Sum('order_amount'),
-        delivery_cost=Sum('delivery_cost')
-    )
+    courier_stats = {}
+    for courier in User.objects.filter(role='COURIER'):
+        courier_orders = orders.filter(courier=courier)
+        if courier_orders.exists():
+            courier_stats[courier] = {
+                'total': courier_orders.count(),
+                'delivered': courier_orders.filter(status='DELIVERED').count(),
+                'in_progress': courier_orders.filter(status='IN_PROGRESS').count(),
+                'cancelled': courier_orders.filter(status='CANCELLED').count(),
+            }
     
-    for courier in courier_deliveries:
-        courier_stats.append({
-            'name': f"{courier['courier__last_name']} {courier['courier__first_name']}",
-            'deliveries_count': courier['deliveries_count'],
-            'order_amount': courier['order_amount'] or 0,
-            'delivery_cost': courier['delivery_cost'] or 0,
-            'total': (courier['order_amount'] or 0) + (courier['delivery_cost'] or 0)
-        })
+    # Общая статистика
+    total_orders = orders.count()
+    total_amount = orders.aggregate(total=Sum('order_amount'))['total'] or 0
+    average_amount = total_amount / total_orders if total_orders > 0 else 0
+    success_rate = (orders.filter(status='DELIVERED').count() / total_orders * 100) if total_orders > 0 else 0
     
-    # Подготовка данных для детализации
-    delivery_details = []
-    for delivery in deliveries:
-        delivery_details.append({
-            'order_number': delivery.order_number,
-            'delivery_date': delivery.delivery_date,
-            'courier_name': f"{delivery.courier.last_name} {delivery.courier.first_name}",
-            'order_amount': delivery.order_amount,
-            'delivery_cost': delivery.delivery_cost,
-            'total': delivery.order_amount + delivery.delivery_cost
-        })
-    
-    # Рендерим HTML
-    html_string = render_to_string('orders/print/delivery_report.html', {
+    # Рендерим HTML-шаблон
+    html_string = render_to_string('print/delivery_report.html', {
+        'orders': orders,
+        'status_stats': status_stats,
+        'courier_stats': courier_stats,
+        'total_orders': total_orders,
+        'total_amount': total_amount,
+        'average_amount': average_amount,
+        'success_rate': success_rate,
         'start_date': start_date,
         'end_date': end_date,
-        'total_deliveries': total_deliveries,
-        'total_order_amount': total_order_amount,
-        'total_delivery_cost': total_delivery_cost,
-        'total_amount': total_amount,
-        'courier_stats': courier_stats,
-        'deliveries': delivery_details,
-        'report_date': timezone.now().date()
+        'generated_at': timezone.now(),
     })
     
-    # Абсолютный путь к CSS
+    # Абсолютный путь к CSS для WeasyPrint
     css_path = os.path.join(settings.BASE_DIR, 'static', 'css', 'print_forms.css')
-    html = HTML(string=html_string)
-    pdf = html.write_pdf(stylesheets=[css_path])
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    pdf = html.write_pdf(stylesheets=[CSS(filename=css_path)])
     
+    # Формируем имя файла
     filename = f'delivery_report_{start_date}_{end_date}.pdf'
+    
+    # Создаем HTTP-ответ
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
+
+@login_required
+def get_client_addresses(request):
+    """Получение списка адресов клиента для AJAX-запроса"""
+    client_id = request.GET.get('client_id')
+    if client_id:
+        addresses = ClientAddress.objects.filter(client_id=client_id).order_by('-is_default')
+        data = [{'id': addr.id, 'address': addr.address} for addr in addresses]
+        return JsonResponse(data, safe=False)
+    return JsonResponse([], safe=False)

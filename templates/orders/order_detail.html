@@ -81,7 +81,7 @@
                         <strong>Адрес доставки:</strong>
                     </div>
                     <div class="col-sm-8">
-                        {{ order.delivery_address|linebreaks }}
+                        {{ order.delivery_address.address }}
                     </div>
                 </div>
                 
@@ -136,10 +136,17 @@
                 
                 <div class="row mb-3">
                     <div class="col-sm-4">
-                        <strong>Адрес:</strong>
+                        <strong>Адреса клиента:</strong>
                     </div>
                     <div class="col-sm-8">
-                        {{ order.client.address|linebreaks }}
+                        {% for address in order.client.addresses.all %}
+                            <div class="mb-2">
+                                {{ address.address }}
+                                {% if address.is_default %}
+                                    <span class="badge bg-primary">По умолчанию</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>

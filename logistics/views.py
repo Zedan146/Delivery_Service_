@@ -121,7 +121,7 @@ def courier_vehicle_assign(request):
     """Назначение транспортного средства курьеру"""
     if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для назначения транспортных средств')
-        return redirect('logistics:courier_vehicle_list')
+        return redirect('logistics:vehicle_list')
     
     if request.method == 'POST':
         form = CourierVehicleForm(request.POST)
@@ -148,7 +148,7 @@ def courier_vehicle_assign(request):
 def courier_vehicle_unassign(request, pk):
     if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для снятия транспортного средства')
-        return redirect('logistics:courier_vehicle_list')
+        return redirect('logistics:vehicle_list')
     courier_vehicle = get_object_or_404(CourierVehicle, pk=pk, is_current=True)
     if request.method == 'POST':
         courier_vehicle.is_current = False

@@ -1,53 +1,27 @@
 {% extends "base.html" %}
+{% load logistics_tags %}
 
 {% block title %}Эффективность курьеров{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Эффективность курьеров</h1>
-    </div>
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Курьер</th>
-                            <th>Дата</th>
-                            <th>Выполнено заказов</th>
-                            <th>Общее время доставки</th>
-                            <th>Общий заработок</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for perf in performances %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'logistics:courier_performance_detail' perf.courier.pk %}">
-                                    {{ perf.courier.get_full_name }}
-                                </a>
-                            </td>
-                            <td>{{ perf.date|date:"d.m.Y" }}</td>
-                            <td>{{ perf.orders_completed }}</td>
-                            <td>{{ perf.total_delivery_time }}</td>
-                            <td>{{ perf.total_earnings }} ₽</td>
-                            <td>
-                                <a href="{% url 'logistics:courier_performance_detail' perf.courier.pk %}" class="btn btn-sm btn-info" title="Подробнее">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center">Нет данных по эффективности курьеров</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+<table>
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Завершено заказов</th>
+            <th>Время доставки</th>
+            <th>Доход</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for performance in performances %}
+        <tr>
+            <td>{{ performance.date|date:"d.m.Y" }}</td>
+            <td>{{ performance.orders_completed }}</td>
+            <td>{{ performance.total_delivery_time|format_timedelta }}</td>
+            <td>{{ performance.total_earnings }} ₽</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %} 

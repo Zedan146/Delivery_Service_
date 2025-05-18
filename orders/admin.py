@@ -1,20 +1,5 @@
 from django.contrib import admin
-from .models import Order, Client
-
-@admin.register(Client)
-class ClientAdmin(admin.ModelAdmin):
-    list_display = ('get_full_name', 'phone_number', 'email', 'address')
-    search_fields = ('first_name', 'last_name', 'middle_name', 'phone_number', 'email')
-    list_filter = ()
-    ordering = ('last_name', 'first_name')
-    fieldsets = (
-        ('Основная информация', {
-            'fields': ('first_name', 'last_name', 'middle_name', 'phone_number', 'email')
-        }),
-        ('Адрес', {
-            'fields': ('address',)
-        }),
-    )
+from .models import Order
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):

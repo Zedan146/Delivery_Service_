@@ -3,7 +3,10 @@ from django.db import models
 import re
 
 class CustomUser(AbstractUser):
+    """Модель пользователя с расширенными полями"""
+    
     class Role(models.TextChoices):
+        """Роли пользователей в системе"""
         ADMIN = 'ADMIN', 'Администратор'
         LOGISTICIAN = 'LOGISTICIAN', 'Логист'
         COURIER = 'COURIER', 'Курьер'
@@ -11,47 +14,58 @@ class CustomUser(AbstractUser):
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
-        default=Role.COURIER
+        default=Role.ADMIN,
+        verbose_name='Роль'
     )
     phone_number = models.CharField(
         max_length=20,
         blank=True,
         verbose_name='Телефон'
     )
-    address = models.TextField(blank=True)
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='Аватар')
+    address = models.TextField(
+        blank=True,
+        verbose_name='Адрес'
+    )
+    avatar = models.ImageField(
+        upload_to='avatars/',
+        blank=True,
+        null=True,
+        verbose_name='Аватар'
+    )
     
     def format_phone_number(self):
         """Форматирует номер телефона в формат +7 (XXX) XXX-XX-XX"""
         if not self.phone_number:
             return ''
             
-        # Удаляем все нецифровые символы из номера
+        # Убираем все кроме цифр
         phone = re.sub(r'\D', '', self.phone_number)
         
-        # Если номер начинается с 8, заменяем на 7
+        # Корректируем начало номера
         if phone.startswith('8'):
             phone = '7' + phone[1:]
-        # Если номер не начинается с 7, добавляем 7 в начало
         elif not phone.startswith('7'):
             phone = '7' + phone
             
-        # Проверяем длину номера
+        # Форматируем номер если он правильной длины
         if len(phone) == 11:
             return f"+{phone[0]} ({phone[1:4]}) {phone[4:7]}-{phone[7:9]}-{phone[9:11]}"
         return self.phone_number
     
     def save(self, *args, **kwargs):
-        # Форматируем номер телефона перед сохранением
+        """Форматирует номер телефона перед сохранением"""
         if self.phone_number:
             self.phone_number = self.format_phone_number()
         super().save(*args, **kwargs)
     
     def is_admin(self):
+        """Проверяет является ли пользователь администратором"""
         return self.role == self.Role.ADMIN
     
     def is_logistician(self):
+        """Проверяет является ли пользователь логистом"""
         return self.role == self.Role.LOGISTICIAN
     
     def is_courier(self):
+        """Проверяет является ли пользователь курьером"""
         return self.role == self.Role.COURIER

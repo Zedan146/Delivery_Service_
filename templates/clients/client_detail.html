@@ -58,8 +58,21 @@
                     {% endif %}
 
                     <div class="row mb-3">
-                        <div class="col-md-4 fw-bold">Адрес:</div>
-                        <div class="col-md-8">{{ client.address }}</div>
+                        <div class="col-md-4 fw-bold">Адреса:</div>
+                        <div class="col-md-8">
+                            <ul class="mb-0 ps-3">
+                                {% for address in client.addresses.all %}
+                                    <li>
+                                        {{ address.address }}
+                                        {% if address.is_default %}
+                                            <span class="badge bg-primary">По умолчанию</span>
+                                        {% endif %}
+                                    </li>
+                                {% empty %}
+                                    <li>Адреса не указаны</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
 
                     <hr>
