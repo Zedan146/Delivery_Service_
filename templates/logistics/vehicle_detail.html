@@ -4,102 +4,77 @@
 {% block title %}{{ vehicle.get_type_display }} - {{ vehicle.model }}{% endblock %}
 
 {% block content %}
+<div class="container mt-4">
 <div class="row mb-4">
     <div class="col">
         <h2>{{ vehicle.get_type_display }} - {{ vehicle.model }}</h2>
     </div>
     <div class="col text-end">
+            {% if is_logistician or user.is_admin %}
         <a href="{% url 'logistics:vehicle_edit' vehicle.pk %}" class="btn btn-warning">
             <i class="fas fa-edit"></i> Редактировать
         </a>
         <a href="{% url 'logistics:vehicle_list' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Назад к списку
         </a>
+            {% else %}
+                <a href="{% url 'couriers:vehicle_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Назад к списку
+                </a>
+            {% endif %}
     </div>
 </div>
 
 <div class="row">
-    <div class="col-md-6">
+        <div class="col-md-{% if is_logistician or user.is_admin %}6{% else %}12{% endif %}">
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="card-title mb-0">Информация о транспортном средстве</h5>
             </div>
             <div class="card-body">
                 <div class="row mb-3">
-                    <div class="col-sm-4">
-                        <strong>Тип:</strong>
+                        <div class="col-sm-4 fw-bold">Тип:</div>
+                        <div class="col-sm-8">{{ vehicle.get_type_display }}</div>
                     </div>
-                    <div class="col-sm-8">
-                        {{ vehicle.get_type_display }}
-                    </div>
-                </div>
-                
                 <div class="row mb-3">
-                    <div class="col-sm-4">
-                        <strong>Модель:</strong>
+                        <div class="col-sm-4 fw-bold">Модель:</div>
+                        <div class="col-sm-8">{{ vehicle.model }}</div>
                     </div>
-                    <div class="col-sm-8">
-                        {{ vehicle.model }}
-                    </div>
-                </div>
-                
                 <div class="row mb-3">
-                    <div class="col-sm-4">
-                        <strong>Цвет:</strong>
+                        <div class="col-sm-4 fw-bold">Цвет:</div>
+                        <div class="col-sm-8">{{ vehicle.color }}</div>
                     </div>
-                    <div class="col-sm-8">
-                        {{ vehicle.color }}
-                    </div>
-                </div>
-                
                 <div class="row mb-3">
-                    <div class="col-sm-4">
-                        <strong>Номер:</strong>
+                        <div class="col-sm-4 fw-bold">Номер:</div>
+                        <div class="col-sm-8">{{ vehicle.plate_number|default:"-" }}</div>
                     </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Статус:</div>
                     <div class="col-sm-8">
-                        {{ vehicle.plate_number|default:"Не указан" }}
+                            {% if vehicle.is_active %}
+                                Активен
+                            {% else %}
+                                Неактивен
+                            {% endif %}
                     </div>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-sm-4">
-                        <strong>Статус:</strong>
                     </div>
-                    <div class="col-sm-8">
-                        {% with status=vehicle.get_status_display_ext %}
-                        <span class="badge bg-{{ status.1 }}">
-                            {{ status.0 }}
-                        </span>
-                        {% endwith %}
-                    </div>
-                </div>
-                
                 {% if vehicle.description %}
                 <div class="row mb-3">
-                    <div class="col-sm-4">
-                        <strong>Описание:</strong>
+                        <div class="col-sm-4 fw-bold">Описание:</div>
+                        <div class="col-sm-8">{{ vehicle.description|linebreaks }}</div>
                     </div>
-                    <div class="col-sm-8">
-                        {{ vehicle.description|linebreaks }}
-                    </div>
-                </div>
                 {% endif %}
             </div>
         </div>
     </div>
     
+        {% if is_logistician or user.is_admin %}
     <div class="col-md-6">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Текущие курьеры</h5>
-                {% if not current_courier_vehicles %}
-                <a href="{% url 'logistics:courier_vehicle_assign' %}" class="btn btn-primary">
-                    Назначить курьера
-                </a>
-                {% endif %}
             </div>
             <div class="card-body">
-                <div class="table-responsive">
                     <table class="table">
                         <thead>
                             <tr>
@@ -109,30 +84,39 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for courier_vehicle in current_courier_vehicles %}
+                        {% for cv in current_courier_vehicles %}
                             <tr>
-                                <td>{{ courier_vehicle.courier.get_full_name }}</td>
-                                <td>{{ courier_vehicle.assigned_date|date:"d.m.Y H:i" }}</td>
+                                <td>{{ cv.courier.get_full_name }}</td>
+                                <td>{{ cv.assigned_date|date:'d.m.Y H:i' }}</td>
                                 <td>
-                                    <form method="post" action="{% url 'logistics:courier_vehicle_unassign' courier_vehicle.pk %}" style="display:inline;">
+                                    <form method="post" action="{% url 'logistics:courier_vehicle_unassign' cv.pk %}" style="display:inline;">
                                         {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Снять курьера с транспорта?');">
-                                            <i class="fas fa-times"></i> Снять
-                                        </button>
+                                        <button type="submit" class="btn btn-danger btn-sm">&times; Снять</button>
                                     </form>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="3" class="text-center">Нет назначенных курьеров</td>
-                            </tr>
+                            <tr><td colspan="3">Нет назначенных курьеров</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                    <hr>
+                    {% if not current_courier_vehicles %}
+                    <h6>Назначить нового курьера</h6>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_courier" class="form-label">Курьер:</label>
+                            {{ form.courier }}
+                        </div>
+                        <input type="hidden" name="vehicle" value="{{ vehicle.pk }}">
+                        <button type="submit" class="btn btn-primary">Назначить</button>
+                    </form>
+                    {% endif %}
                 </div>
-                <hr>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %} 

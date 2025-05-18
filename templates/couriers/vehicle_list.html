@@ -22,22 +22,26 @@
                 <tbody>
                     {% for vehicle in vehicles %}
                         <tr>
-                            <td>{{ vehicle.get_vehicle_type_display }}</td>
+                            <td>{{ vehicle.get_type_display }}</td>
                             <td>{{ vehicle.model }}</td>
-                            <td>{{ vehicle.plate_number }}</td>
+                            <td>{{ vehicle.plate_number|default:"-" }}</td>
                             <td>{{ vehicle.color }}</td>
                             <td>
-                                <span class="badge {% if vehicle.status == 'ACTIVE' %}bg-success
-                                    {% elif vehicle.status == 'MAINTENANCE' %}bg-warning
-                                    {% else %}bg-danger{% endif %}">
-                                    {{ vehicle.get_status_display }}
-                                </span>
+                                {% if vehicle.is_active %}
+                                    Активен
+                                {% else %}
+                                    Неактивен
+                                {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'logistics:vehicle_detail' vehicle.pk %}" class="btn btn-sm btn-info">
-                                    Подробнее
+                                <a href="{% url 'logistics:vehicle_detail' vehicle.pk %}" class="btn btn-sm btn-info" title="Подробнее">
+                                    <i class="fas fa-eye"></i> Подробнее
                                 </a>
                             </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">У вас пока нет назначенных транспортных средств</td>
                         </tr>
                     {% endfor %}
                 </tbody>

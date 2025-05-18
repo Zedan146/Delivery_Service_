@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Отчёты о доставках{% endblock %}
+{% block title %}Отчёты о выполненных доставках{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Отчёты о доставках</h1>
+        <h1>Отчёты о выполненных доставках</h1>
     </div>
+
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -14,11 +15,12 @@
                     <thead>
                         <tr>
                             <th>Заказ</th>
+                            <th>Клиент</th>
+                            <th>Адрес доставки</th>
                             <th>Курьер</th>
                             <th>Транспорт</th>
-                            <th>Начало</th>
-                            <th>Завершение</th>
-                            <th>Статус заказа</th>
+                            <th>Дата доставки</th>
+                            <th>Время доставки</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
@@ -30,30 +32,25 @@
                                     {{ report.order.order_number }}
                                 </a>
                             </td>
+                            <td>{{ report.order.client.get_full_name }}</td>
+                            <td>{{ report.order.delivery_address|truncatechars:50 }}</td>
                             <td>{{ report.courier.get_full_name }}</td>
                             <td>{{ report.vehicle.get_type_display }} {{ report.vehicle.model }}</td>
-                            <td>{{ report.delivery_started|date:"d.m.Y H:i" }}</td>
+                            <td>{{ report.delivery_completed|date:"d.m.Y" }}</td>
                             <td>
-                                {% if report.delivery_completed %}
-                                    {{ report.delivery_completed|date:"d.m.Y H:i" }}
-                                {% else %}
-                                    <span class="text-warning">В процессе</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% with status=report.order.get_status_display %}
-                                <span class="badge bg-secondary">{{ status }}</span>
+                                {% with duration=report.delivery_completed|timeuntil:report.delivery_started %}
+                                    {{ duration }}
                                 {% endwith %}
                             </td>
                             <td>
-                                <a href="{% url 'logistics:delivery_report_detail' report.pk %}" class="btn btn-sm btn-info">
+                                <a href="{% url 'logistics:delivery_report_detail' report.pk %}" class="btn btn-sm btn-info" title="Подробнее">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">Отчёты не найдены</td>
+                            <td colspan="8" class="text-center">Нет выполненных доставок</td>
                         </tr>
                         {% endfor %}
                     </tbody>

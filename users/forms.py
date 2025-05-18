@@ -6,6 +6,11 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = CustomUser
         fields = ('username', 'email', 'role', 'phone_number', 'address')
+        widgets = {
+            'phone_number': forms.TextInput(attrs={
+                'placeholder': 'Введите номер телефона'
+            })
+        }
 
 
 class CustomUserChangeForm(UserChangeForm):
@@ -17,13 +22,25 @@ class CustomUserChangeForm(UserChangeForm):
         self.fields['email'].label = 'Email'
         self.fields['phone_number'].label = 'Телефон'
         self.fields['address'].label = 'Адрес'
+        if 'avatar' in self.fields:
         self.fields['avatar'].label = 'Аватар'
-        if 'role' in self.fields:
-            self.fields['role'].label = 'Роль'
+        
+        # Добавляем подсказку для номера телефона
+        self.fields['phone_number'].widget.attrs.update({
+            'placeholder': 'Введите номер телефона'
+        })
+        
+        # Управление полями в зависимости от роли пользователя
+        if user:
             # Только админ может менять роль
-            if user and not (hasattr(user, 'is_admin') and user.is_admin()):
+            if 'role' in self.fields and not (hasattr(user, 'is_admin') and user.is_admin()):
                 self.fields['role'].disabled = True
 
     class Meta(UserChangeForm.Meta):
         model = CustomUser
         fields = ('username', 'email', 'role', 'phone_number', 'address', 'avatar') 
+        fieldsets = (
+            (None, {'fields': ('username', 'password')}),
+            ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'phone_number', 'address', 'avatar')}),
+            ('Роли и разрешения', {'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ) 

@@ -4,10 +4,11 @@ from django.contrib import messages
 from django.db.models import Q
 from .models import Vehicle, CourierVehicle, DeliveryReport, CourierPerformance
 from .forms import VehicleForm, CourierVehicleForm
+from datetime import timedelta
 
 @login_required
 def vehicle_list(request):
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра списка транспортных средств')
         return redirect('home')
     
@@ -16,7 +17,7 @@ def vehicle_list(request):
 
 @login_required
 def vehicle_create(request):
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для создания транспортных средств')
         return redirect('logistics:vehicle_list')
     
@@ -33,39 +34,53 @@ def vehicle_create(request):
 
 @login_required
 def vehicle_detail(request, pk):
-    if not request.user.is_logistician():
-        messages.error(request, 'У вас нет прав для просмотра информации о транспортных средствах')
-        return redirect('logistics:vehicle_list')
-    
     vehicle = get_object_or_404(Vehicle, pk=pk)
-    current_courier_vehicles = vehicle.couriervehicle_set.filter(is_current=True)
-
-    from .forms import CourierVehicleForm
-    # Форма назначения курьера на этот транспорт
-    if request.method == 'POST':
-        form = CourierVehicleForm(request.POST)
-        if form.is_valid():
-            courier_vehicle = form.save(commit=False)
-            courier_vehicle.vehicle = vehicle
-            # Снимаем старое назначение с курьера
-            CourierVehicle.objects.filter(courier=courier_vehicle.courier, is_current=True).update(is_current=False)
-            courier_vehicle.is_current = True
-            courier_vehicle.save()
-            messages.success(request, 'Курьер успешно назначен на транспортное средство')
-            return redirect('logistics:vehicle_detail', pk=vehicle.pk)
+    
+    # Проверяем права доступа
+    if request.user.is_logistician() or request.user.is_admin():
+        # Логист и админ могут видеть все детали и управлять назначениями
+        current_courier_vehicles = vehicle.couriervehicle_set.filter(is_current=True)
+        from .forms import CourierVehicleForm
+        if request.method == 'POST':
+            form = CourierVehicleForm(request.POST)
+            if form.is_valid():
+                courier_vehicle = form.save(commit=False)
+                courier_vehicle.vehicle = vehicle
+                # Снимаем старое назначение с курьера
+                CourierVehicle.objects.filter(courier=courier_vehicle.courier, is_current=True).update(is_current=False)
+                courier_vehicle.is_current = True
+                courier_vehicle.save()
+                messages.success(request, 'Курьер успешно назначен на транспортное средство')
+                return redirect('logistics:vehicle_detail', pk=vehicle.pk)
+        else:
+            form = CourierVehicleForm()
+            form.fields['vehicle'].queryset = Vehicle.objects.filter(pk=vehicle.pk)
+        
+        context = {
+            'vehicle': vehicle,
+            'current_courier_vehicles': current_courier_vehicles,
+            'form': form,
+            'is_logistician': True
+        }
+    elif request.user.is_courier():
+        # Проверяем, назначен ли транспорт курьеру
+        if not vehicle.couriervehicle_set.filter(courier=request.user, is_current=True).exists():
+            messages.error(request, 'У вас нет доступа к этому транспортному средству')
+            return redirect('couriers:vehicle_list')
+        
+        context = {
+            'vehicle': vehicle,
+            'is_logistician': False
+        }
     else:
-        form = CourierVehicleForm()
-        form.fields['vehicle'].queryset = Vehicle.objects.filter(pk=vehicle.pk)
-
-    return render(request, 'logistics/vehicle_detail.html', {
-        'vehicle': vehicle,
-        'current_courier_vehicles': current_courier_vehicles,
-        'form': form,
-    })
+        messages.error(request, 'У вас нет прав для просмотра информации о транспортных средствах')
+        return redirect('home')
+    
+    return render(request, 'logistics/vehicle_detail.html', context)
 
 @login_required
 def vehicle_edit(request, pk):
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для редактирования транспортных средств')
         return redirect('logistics:vehicle_list')
     
@@ -82,8 +97,28 @@ def vehicle_edit(request, pk):
     return render(request, 'logistics/vehicle_form.html', {'form': form, 'title': 'Редактирование транспортного средства'})
 
 @login_required
+def vehicle_delete(request, pk):
+    if not (request.user.is_logistician() or request.user.is_admin()):
+        messages.error(request, 'У вас нет прав для удаления транспортных средств')
+        return redirect('logistics:vehicle_list')
+    
+    vehicle = get_object_or_404(Vehicle, pk=pk)
+    
+    # Проверяем, не назначено ли транспортное средство курьеру
+    if vehicle.couriervehicle_set.filter(is_current=True).exists():
+        messages.error(request, 'Невозможно удалить транспортное средство, так как оно назначено курьеру')
+        return redirect('logistics:vehicle_list')
+    
+    if request.method == 'POST':
+        vehicle.delete()
+        messages.success(request, 'Транспортное средство успешно удалено')
+        return redirect('logistics:vehicle_list')
+    
+    return render(request, 'logistics/vehicle_confirm_delete.html', {'vehicle': vehicle})
+
+@login_required
 def courier_vehicle_list(request):
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра списка транспортных средств курьеров')
         return redirect('home')
     
@@ -93,7 +128,7 @@ def courier_vehicle_list(request):
 @login_required
 def courier_vehicle_assign(request):
     """Назначение транспортного средства курьеру"""
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для назначения транспортных средств')
         return redirect('logistics:courier_vehicle_list')
     
@@ -120,7 +155,7 @@ def courier_vehicle_assign(request):
 
 @login_required
 def courier_vehicle_unassign(request, pk):
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для снятия транспортного средства')
         return redirect('logistics:courier_vehicle_list')
     courier_vehicle = get_object_or_404(CourierVehicle, pk=pk, is_current=True)
@@ -132,16 +167,28 @@ def courier_vehicle_unassign(request, pk):
 
 @login_required
 def delivery_report_list(request):
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра отчетов о доставках')
         return redirect('home')
     
-    reports = DeliveryReport.objects.all()
-    return render(request, 'logistics/delivery_report_list.html', {'reports': reports})
+    # Получаем только отчеты по доставленным заказам
+    reports = DeliveryReport.objects.filter(
+        order__status='DELIVERED'
+    ).select_related(
+        'order', 
+        'courier', 
+        'vehicle', 
+        'order__client'
+    ).order_by('-delivery_completed')  # Сортировка по дате завершения доставки
+    
+    return render(request, 'logistics/delivery_report_list.html', {
+        'reports': reports,
+        'status': 'DELIVERED'  # Фиксированный статус для выполненных заказов
+    })
 
 @login_required
 def delivery_report_detail(request, pk):
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра отчетов о доставках')
         return redirect('logistics:delivery_report_list')
     
@@ -150,7 +197,7 @@ def delivery_report_detail(request, pk):
 
 @login_required
 def courier_performance_list(request):
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра отчетов о производительности курьеров')
         return redirect('home')
     
@@ -159,9 +206,30 @@ def courier_performance_list(request):
 
 @login_required
 def courier_performance_detail(request, courier_id):
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра отчетов о производительности курьеров')
         return redirect('logistics:courier_performance_list')
     
-    performances = CourierPerformance.objects.filter(courier_id=courier_id)
-    return render(request, 'logistics/courier_performance_detail.html', {'performances': performances})
+    performances = CourierPerformance.objects.filter(courier_id=courier_id).order_by('-date')
+    
+    # Рассчитываем общую статистику
+    total_orders = sum(p.orders_completed for p in performances)
+    total_earnings = sum(p.total_earnings for p in performances)
+    
+    # Рассчитываем среднее время доставки
+    total_time = sum((p.total_delivery_time for p in performances), timedelta())
+    avg_delivery_time = total_time / total_orders if total_orders > 0 else timedelta()
+    
+    # Форматируем среднее время доставки
+    hours = avg_delivery_time.total_seconds() // 3600
+    minutes = (avg_delivery_time.total_seconds() % 3600) // 60
+    avg_delivery_time_str = f"{int(hours)}ч {int(minutes)}м" if hours > 0 else f"{int(minutes)}м"
+    
+    context = {
+        'performances': performances,
+        'total_orders': total_orders,
+        'total_earnings': total_earnings,
+        'avg_delivery_time': avg_delivery_time_str
+    }
+    
+    return render(request, 'logistics/courier_performance_detail.html', context)

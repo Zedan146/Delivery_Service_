@@ -49,6 +49,9 @@
                             <a href="{% url 'logistics:vehicle_edit' vehicle.pk %}" class="btn btn-sm btn-warning">
                                 <i class="fas fa-edit"></i>
                             </a>
+                            <a href="{% url 'logistics:vehicle_delete' vehicle.pk %}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
                         </td>
                     </tr>
                     {% empty %}

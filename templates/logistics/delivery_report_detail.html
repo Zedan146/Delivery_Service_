@@ -23,6 +23,26 @@
                         </div>
                     </div>
                     <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Клиент:</div>
+                        <div class="col-sm-8">
+                            <a href="{% url 'orders:client_detail' report.order.client.pk %}">
+                                {{ report.order.client.last_name }} {{ report.order.client.first_name }} {{ report.order.client.middle_name }}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Адрес доставки:</div>
+                        <div class="col-sm-8">{{ report.order.delivery_address|linebreaks }}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Сумма заказа:</div>
+                        <div class="col-sm-8">{{ report.order.order_amount }} ₽</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Стоимость доставки:</div>
+                        <div class="col-sm-8">{{ report.order.delivery_cost }} ₽</div>
+                    </div>
+                    <div class="row mb-3">
                         <div class="col-sm-4 fw-bold">Курьер:</div>
                         <div class="col-sm-8">{{ report.courier.get_full_name }}</div>
                     </div>
@@ -47,13 +67,27 @@
                     <div class="row mb-3">
                         <div class="col-sm-4 fw-bold">Статус заказа:</div>
                         <div class="col-sm-8">
-                            <span class="badge bg-secondary">{{ report.order.get_status_display }}</span>
+                            {% with status=report.order.status %}
+                            <span class="badge {% if status == 'NEW' %}bg-primary
+                                       {% elif status == 'ASSIGNED' %}bg-info
+                                       {% elif status == 'IN_PROGRESS' %}bg-warning
+                                       {% elif status == 'DELIVERED' %}bg-success
+                                       {% else %}bg-danger{% endif %}">
+                                {{ report.order.get_status_display }}
+                            </span>
+                            {% endwith %}
                         </div>
                     </div>
                     {% if report.delivery_notes %}
                     <div class="row mb-3">
                         <div class="col-sm-4 fw-bold">Заметки по доставке:</div>
                         <div class="col-sm-8">{{ report.delivery_notes|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+                    {% if report.order.notes %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4 fw-bold">Комментарий клиента:</div>
+                        <div class="col-sm-8">{{ report.order.notes|linebreaks }}</div>
                     </div>
                     {% endif %}
                 </div>

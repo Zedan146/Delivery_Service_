@@ -8,6 +8,7 @@ urlpatterns = [
     path('vehicles/create/', views.vehicle_create, name='vehicle_create'),
     path('vehicles/<int:pk>/', views.vehicle_detail, name='vehicle_detail'),
     path('vehicles/<int:pk>/edit/', views.vehicle_edit, name='vehicle_edit'),
+    path('vehicles/<int:pk>/delete/', views.vehicle_delete, name='vehicle_delete'),
     path('courier-vehicles/', views.courier_vehicle_list, name='courier_vehicle_list'),
     path('courier-vehicles/assign/', views.courier_vehicle_assign, name='courier_vehicle_assign'),
     path('courier-vehicles/<int:pk>/unassign/', views.courier_vehicle_unassign, name='courier_vehicle_unassign'),

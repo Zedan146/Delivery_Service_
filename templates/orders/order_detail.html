@@ -8,7 +8,7 @@
         <h2>Заказ #{{ order.order_number }}</h2>
     </div>
     <div class="col text-end">
-        {% if user.is_logistician or user.is_superuser %}
+        {% if user.is_logistician or user.is_admin %}
             {% if order.status != 'DELIVERED' and order.status != 'CANCELLED' %}
                 <form method="post" action="{% url 'orders:order_cancel' order.pk %}" class="d-inline">
                     {% csrf_token %}
@@ -192,7 +192,23 @@
     </div>
 </div>
 
-{% if user.is_logistician %}
+<!-- Кнопка печати и удаления внизу -->
+<div class="row mt-4">
+    <div class="col text-end">
+        {% if user.is_logistician or user.is_admin %}
+            <a href="{% url 'orders:order_receipt' order.pk %}" class="btn btn-outline-primary" target="_blank">
+                <i class="fas fa-print"></i> Печать квитанции
+            </a>
+        {% endif %}
+        {% if user.is_admin and order.status == 'CANCELLED' %}
+            <a href="{% url 'orders:order_delete' order.pk %}" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите удалить отменённый заказ?')">
+                <i class="fas fa-trash"></i> Удалить заказ
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if user.is_logistician or user.is_admin %}
 <!-- Модальное окно для назначения курьера -->
 <div class="modal fade" id="assignCourierModal" tabindex="-1" aria-labelledby="assignCourierModalLabel" aria-hidden="true">
     <div class="modal-dialog">

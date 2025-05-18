@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load logistics_tags %}
+
+{% block title %}Эффективность курьеров{% endblock %}
+
+{% block content %}
+<table>
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Завершено заказов</th>
+            <th>Время доставки</th>
+            <th>Доход</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for performance in performances %}
+        <tr>
+            <td>{{ performance.date|date:"d.m.Y" }}</td>
+            <td>{{ performance.orders_completed }}</td>
+            <td>{{ performance.total_delivery_time|format_timedelta }}</td>
+            <td>{{ performance.total_earnings }} ₽</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %} 

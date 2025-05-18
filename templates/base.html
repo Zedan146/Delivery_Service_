@@ -22,17 +22,10 @@
                     {% if user.is_authenticated %}
                         {% if user.is_admin %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'admin:index' %}">Админ панель</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'orders:order_list' %}">Заказы</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'orders:client_list' %}">Клиенты</a>
+                                <a class="nav-link" href="{% url 'admin:index' %}">Администрирование</a>
                             </li>
                         {% endif %}
-                        
-                        {% if user.is_logistician %}
+                        {% if user.is_logistician or user.is_admin %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'orders:order_list' %}">Заказы</a>
                             </li>
@@ -52,7 +45,6 @@
                                 <a class="nav-link" href="{% url 'logistics:courier_performance_list' %}">Эффективность</a>
                             </li>
                         {% endif %}
-                        
                         {% if user.is_courier %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'couriers:order_list' %}">Мои заказы</a>
@@ -60,8 +52,10 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'couriers:vehicle_list' %}">Мой транспорт</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'couriers:performance' %}">Моя статистика</a>
+                            </li>
                         {% endif %}
-                        
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'users:profile' %}">Профиль</a>
                         </li>

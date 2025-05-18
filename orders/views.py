@@ -2,16 +2,26 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponse
+from django.utils import timezone
 from .models import Order, Client
 from .forms import OrderForm, ClientForm
 from users.models import CustomUser as User
+from logistics.models import DeliveryReport, CourierVehicle
+from django.template.loader import render_to_string
+from weasyprint import HTML
+from django.conf import settings
+import qrcode
+import base64
+from io import BytesIO
+from django.urls import reverse
 
 @login_required
 def order_list(request):
-    """Представление для просмотра списка заказов с фильтрацией по статусу для логиста"""
-    if request.user.is_logistician():
-        status = request.GET.get('status', 'NEW')
+    """Представление для просмотра списка заказов с фильтрацией по статусу для логиста и администратора"""
+    if request.user.is_logistician() or request.user.is_admin():
+        default_status = 'ALL' if request.user.is_admin() else 'NEW'
+        status = request.GET.get('status', default_status)
         if status == 'ALL':
             orders = Order.objects.all()
         else:
@@ -27,7 +37,7 @@ def order_list(request):
 @login_required
 def order_create(request):
     """Представление для создания нового заказа"""
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для создания заказов')
         return redirect('orders:order_list')
     
@@ -48,8 +58,8 @@ def order_detail(request, pk):
     order = get_object_or_404(Order, pk=pk)
     
     # Проверяем права доступа
-    if not (request.user.is_logistician or request.user.is_superuser or 
-            (request.user.is_courier and order.courier == request.user)):
+    if not (request.user.is_logistician() or request.user.is_admin() or 
+            (request.user.is_courier() and order.courier == request.user)):
         messages.error(request, 'У вас нет прав для просмотра этого заказа')
         return HttpResponseForbidden()
     
@@ -57,8 +67,8 @@ def order_detail(request, pk):
         'order': order,
     }
     
-    # Добавляем список доступных курьеров для логиста
-    if request.user.is_logistician or request.user.is_superuser:
+    # Добавляем список доступных курьеров для логиста и админа
+    if request.user.is_logistician() or request.user.is_admin():
         context['available_couriers'] = User.objects.filter(role='COURIER', is_active=True)
     
     return render(request, 'orders/order_detail.html', context)
@@ -85,7 +95,7 @@ def order_edit(request, pk):
 @login_required
 def client_list(request):
     """Представление для просмотра списка клиентов"""
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра списка клиентов')
         return redirect('home')
     
@@ -95,7 +105,7 @@ def client_list(request):
 @login_required
 def client_create(request):
     """Представление для создания нового клиента"""
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для создания клиентов')
         return redirect('orders:client_list')
     
@@ -113,7 +123,7 @@ def client_create(request):
 @login_required
 def client_detail(request, pk):
     """Представление для просмотра информации о клиенте"""
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра информации о клиентах')
         return redirect('orders:client_list')
     
@@ -123,7 +133,7 @@ def client_detail(request, pk):
 @login_required
 def client_edit(request, pk):
     """Представление для редактирования информации о клиенте"""
-    if not request.user.is_logistician():
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для редактирования клиентов')
         return redirect('orders:client_list')
     
@@ -213,7 +223,7 @@ def order_delete(request, pk):
 
 @login_required
 def order_cancel(request, pk):
-    if not (request.user.is_logistician or request.user.is_superuser):
+    if not (request.user.is_logistician() or request.user.is_admin()):
         messages.error(request, 'У вас нет прав для отмены заказов')
         return HttpResponseForbidden()
     
@@ -231,7 +241,7 @@ def order_cancel(request, pk):
 
 @login_required
 def order_assign_courier(request, pk):
-    if not request.user.is_logistician:
+    if not (request.user.is_logistician() or request.user.is_admin()):
         return HttpResponseForbidden()
     
     order = get_object_or_404(Order, pk=pk)
@@ -242,15 +252,90 @@ def order_assign_courier(request, pk):
             # Снимаем курьера с заказа
             order.courier = None
             order.status = 'NEW'  # Возвращаем заказ в статус "Новый"
+            # Удаляем отчет о доставке, если он существует
+            DeliveryReport.objects.filter(order=order).delete()
             order.save()
             messages.success(request, 'Курьер успешно снят с заказа, статус заказа изменен на "Новый"')
         elif courier_id:
             courier = get_object_or_404(User, pk=courier_id, role='COURIER')
+            # Проверяем, есть ли у курьера назначенное транспортное средство
+            courier_vehicle = CourierVehicle.objects.filter(courier=courier, is_current=True).first()
+            if not courier_vehicle:
+                messages.error(request, 'Невозможно назначить курьера без транспортного средства')
+                return redirect('orders:order_detail', pk=order.pk)
+            
             order.courier = courier
             order.status = 'ASSIGNED'
             order.save()
+            
+            # Создаем или обновляем отчет о доставке
+            delivery_report, created = DeliveryReport.objects.get_or_create(
+                order=order,
+                defaults={
+                    'courier': courier,
+                    'vehicle': courier_vehicle.vehicle,
+                    'delivery_started': timezone.now()
+                }
+            )
+            if not created:
+                delivery_report.courier = courier
+                delivery_report.vehicle = courier_vehicle.vehicle
+                delivery_report.delivery_started = timezone.now()
+                delivery_report.delivery_completed = None
+                delivery_report.save()
+            
             messages.success(request, 'Курьер успешно назначен')
         else:
             messages.error(request, 'Пожалуйста, выберите курьера')
     
     return redirect('orders:order_detail', pk=order.pk)
+
+@login_required
+def order_receipt_pdf(request, pk):
+    """Генерация PDF-квитанции для заказа."""
+    if not (request.user.is_logistician or request.user.is_admin):
+        messages.error(request, 'У вас нет прав для просмотра квитанций')
+        return redirect('orders:order_list')
+    
+    order = get_object_or_404(Order, pk=pk)
+    
+    # Генерируем QR-код
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    # В QR-код помещаем URL для отслеживания заказа
+    tracking_url = request.build_absolute_uri(
+        reverse('orders:order_detail', kwargs={'pk': order.pk})
+    )
+    qr.add_data(tracking_url)
+    qr.make(fit=True)
+    
+    # Создаем изображение QR-кода
+    qr_image = qr.make_image(fill_color="black", back_color="white")
+    
+    # Конвертируем изображение в base64
+    buffer = BytesIO()
+    qr_image.save(buffer, format='PNG')
+    qr_code = base64.b64encode(buffer.getvalue()).decode()
+    
+    # Рендерим HTML
+    html_string = render_to_string('orders/print/order_receipt.html', {
+        'order': order,
+        'qr_code': qr_code,
+    })
+    
+    # Создаем PDF
+    html = HTML(string=html_string)
+    pdf = html.write_pdf()
+    
+    # Формируем имя файла
+    filename = f'order_receipt_{order.order_number}.pdf'
+    
+    # Отправляем PDF
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response

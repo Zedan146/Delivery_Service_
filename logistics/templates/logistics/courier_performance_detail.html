@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load logistics_tags %}
+
+{% block title %}Детали производительности курьера{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Детали производительности курьера: {{ performances.0.courier.get_full_name }}</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">Общая статистика</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Всего заказов</h5>
+                            <p class="display-4">{{ total_orders }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Общий заработок</h5>
+                            <p class="display-4">{{ total_earnings }} ₽</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Среднее время доставки</h5>
+                            <p class="display-4">{{ avg_delivery_time }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Ежедневная статистика</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Количество заказов</th>
+                            <th>Общее время доставки</th>
+                            <th>Заработок</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for performance in performances %}
+                        <tr>
+                            <td>{{ performance.date|date:"d.m.Y" }}</td>
+                            <td>{{ performance.orders_completed }}</td>
+                            <td>{{ performance.total_delivery_time|format_timedelta }}</td>
+                            <td>{{ performance.total_earnings }} ₽</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">Нет данных о производительности</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{% url 'logistics:courier_performance_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад к списку
+        </a>
+    </div>
+</div>
+{% endblock %} 

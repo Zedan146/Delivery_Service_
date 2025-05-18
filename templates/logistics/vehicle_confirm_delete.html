@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Удаление транспортного средства{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">Подтверждение удаления</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Вы уверены, что хотите удалить транспортное средство "{{ vehicle.get_type_display }} - {{ vehicle.model }}"?</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'logistics:vehicle_list' %}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

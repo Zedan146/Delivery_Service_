@@ -13,9 +13,15 @@ def profile(request):
 @login_required
 def profile_edit(request):
     """Представление для редактирования профиля пользователя"""
+    # Проверяем, что пользователь редактирует свой профиль
     if request.method == 'POST':
         form = CustomUserChangeForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
+            # Проверяем права доступа
+            if not request.user.is_admin() and 'password' in form.cleaned_data:
+                messages.error(request, 'У вас нет прав для изменения пароля')
+                return redirect('users:profile')
+            
             form.save()
             messages.success(request, 'Профиль успешно обновлен')
             return redirect('users:profile')

@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from orders.models import Order
+from django.utils import timezone
 
 class Vehicle(models.Model):
     """Модель для хранения информации о транспортных средствах"""
@@ -16,6 +17,8 @@ class Vehicle(models.Model):
     plate_number = models.CharField(max_length=20, blank=True, verbose_name='Номер машины')
     description = models.TextField(blank=True, verbose_name='Описание')
     is_active = models.BooleanField(default=True, verbose_name='Активность')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(default=timezone.now, verbose_name='Дата обновления')
     
     def __str__(self):
         return f"{self.get_type_display()} - {self.model}"
@@ -32,41 +35,65 @@ class Vehicle(models.Model):
             return 'В работе', 'primary'
         return 'Назначено', 'success'
 
+    def save(self, *args, **kwargs):
+        self.updated_at = timezone.now()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = 'Транспортное средство'
+        verbose_name_plural = 'Транспортные средства'
+        ordering = ['type', 'model']
+
 
 class CourierVehicle(models.Model):
     """Модель для хранения информации о курьерских транспортных средствах"""
-    courier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
-    assigned_date = models.DateTimeField(auto_now_add=True)
-    is_current = models.BooleanField(default=True)
+    courier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Курьер')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, verbose_name='Транспортное средство')
+    assigned_date = models.DateTimeField(auto_now_add=True, verbose_name='Дата назначения')
+    is_current = models.BooleanField(default=True, verbose_name='Текущее назначение')
     
     def __str__(self):
         return f"{self.courier.username} - {self.vehicle}"
 
+    class Meta:
+        verbose_name = 'Назначение транспорта'
+        verbose_name_plural = 'Назначения транспорта'
+        ordering = ['-assigned_date']
+
 
 class DeliveryReport(models.Model):
     """Модель для хранения информации о доставке"""
-    order = models.OneToOneField(Order, on_delete=models.CASCADE)
-    courier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
-    delivery_started = models.DateTimeField()
-    delivery_completed = models.DateTimeField(null=True, blank=True)
-    delivery_notes = models.TextField(blank=True)
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, verbose_name='Заказ')
+    courier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Курьер')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, verbose_name='Транспортное средство')
+    delivery_started = models.DateTimeField(verbose_name='Время начала доставки')
+    delivery_completed = models.DateTimeField(null=True, blank=True, verbose_name='Время завершения доставки')
+    delivery_notes = models.TextField(blank=True, verbose_name='Примечания к доставке')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(default=timezone.now, verbose_name='Дата обновления')
     
     def __str__(self):
         return f"Delivery Report for {self.order}"
     
+    def save(self, *args, **kwargs):
+        self.updated_at = timezone.now()
+        super().save(*args, **kwargs)
+    
     class Meta:
+        verbose_name = 'Отчет о доставке'
+        verbose_name_plural = 'Отчеты о доставках'
         ordering = ['-delivery_started']
 
 
 class CourierPerformance(models.Model):
     """Модель для хранения информации о производительности курьеров"""
-    courier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    date = models.DateField()
-    orders_completed = models.IntegerField(default=0)
-    total_delivery_time = models.DurationField(default=0)
-    total_earnings = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    courier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Курьер')
+    date = models.DateField(verbose_name='Дата')
+    orders_completed = models.IntegerField(default=0, verbose_name='Выполнено заказов')
+    total_delivery_time = models.DurationField(default=0, verbose_name='Общее время доставки')
+    total_earnings = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Общий заработок')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(default=timezone.now, verbose_name='Дата обновления')
     
     def calculate_efficiency(self):
         if self.total_delivery_time.total_seconds() > 0:
@@ -76,6 +103,12 @@ class CourierPerformance(models.Model):
     def __str__(self):
         return f"Performance Report - {self.courier.username} ({self.date})"
     
+    def save(self, *args, **kwargs):
+        self.updated_at = timezone.now()
+        super().save(*args, **kwargs)
+    
     class Meta:
-        unique_together = ['courier', 'date']
+        verbose_name = 'Производительность курьера'
+        verbose_name_plural = 'Производительность курьеров'
         ordering = ['-date']
+        unique_together = ['courier', 'date']

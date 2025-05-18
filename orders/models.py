@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from decimal import Decimal
 import re
+from django.utils import timezone
 
 class Client(models.Model):
     """Модель для хранения информации о клиентах"""
@@ -11,6 +12,8 @@ class Client(models.Model):
     phone_number = models.CharField(max_length=20, verbose_name='Телефон')
     email = models.EmailField(blank=True, verbose_name='Email')
     address = models.TextField(verbose_name='Адрес')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(default=timezone.now, verbose_name='Дата обновления')
     
     def format_phone_number(self):
         """Форматирует номер телефона в формат +7 (XXX) XXX-XX-XX"""
@@ -30,6 +33,7 @@ class Client(models.Model):
         return self.phone_number
     
     def save(self, *args, **kwargs):
+        self.updated_at = timezone.now()
         # Форматируем номер телефона перед сохранением
         self.phone_number = self.format_phone_number()
         super().save(*args, **kwargs)
@@ -62,7 +66,8 @@ class Order(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='assigned_orders'
+        related_name='assigned_orders',
+        verbose_name='Курьер'
     )
     delivery_address = models.TextField(verbose_name='Адрес доставки')
     order_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сумма заказа')
@@ -73,10 +78,10 @@ class Order(models.Model):
         default=Status.NEW,
         verbose_name='Статус'
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания заказа')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления заказа')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
     delivery_date = models.DateField(verbose_name='Дата доставки')
-    notes = models.TextField(blank=True, verbose_name='Комментарий клиента')
+    notes = models.TextField(blank=True, verbose_name='Комментарии')
 
     def create_order_number(self):
         # Создание номера заказа
