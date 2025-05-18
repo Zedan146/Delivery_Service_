@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Курьер: {{ courier.get_full_name }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">{{ courier.get_full_name }}</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Телефон:</strong> {{ courier.phone_number }}</p>
+                    <p><strong>Email:</strong> {{ courier.email }}</p>
+                    <p><strong>Количество доставленных заказов:</strong> {{ total_delivered }}</p>
+                    <p><strong>Суммарная стоимость доставок:</strong> {{ total_earnings|floatformat:2 }} ₽</p>
+                    <p><strong>Среднее время доставки:</strong> {{ avg_time|default:'—' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">Транспортное средство</h4>
+                </div>
+                <div class="card-body">
+                    {% with current_vehicle=courier.current_vehicle %}
+                        {% if current_vehicle %}
+                            <p><strong>Тип:</strong> {{ current_vehicle.vehicle.get_type_display }}</p>
+                            <p><strong>Модель:</strong> {{ current_vehicle.vehicle.model }}</p>
+                            <p><strong>Номер:</strong> {{ current_vehicle.vehicle.plate_number|default:"-" }}</p>
+                            <p><strong>Дата назначения:</strong> {{ current_vehicle.assigned_date|date:"d.m.Y H:i" }}</p>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#changeVehicleModal">
+                                    <i class="fas fa-exchange-alt"></i> Сменить транспорт
+                                </button>
+                                <form method="post" action="{% url 'logistics:courier_vehicle_unassign' current_vehicle.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Снять транспортное средство с курьера?');">
+                                        <i class="fas fa-times"></i> Снять транспорт
+                                    </button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Транспортное средство не назначено</p>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assignVehicleModal">
+                                <i class="fas fa-plus"></i> Назначить транспорт
+                            </button>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0">Доставленные заказы</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>№ Заказа</th>
+                                    <th>Дата доставки</th>
+                                    <th>Сумма заказа</th>
+                                    <th>Стоимость доставки</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for order in delivered_orders %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'orders:order_detail' order.pk %}">
+                                            {{ order.order_number }}
+                                        </a>
+                                    </td>
+                                    <td>{{ order.delivery_date|date:"d.m.Y" }}</td>
+                                    <td>{{ order.order_amount|floatformat:2 }} ₽</td>
+                                    <td>{{ order.delivery_cost|floatformat:2 }} ₽</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="4" class="text-center">Нет доставленных заказов</td></tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for assigning a new vehicle -->
+<div class="modal fade" id="assignVehicleModal" tabindex="-1" aria-labelledby="assignVehicleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignVehicleModalLabel">Назначить транспортное средство</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'logistics:courier_vehicle_assign' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="courier" value="{{ courier.pk }}">
+                    <div class="mb-3">
+                        <label for="vehicle" class="form-label">Выберите транспортное средство</label>
+                        <select name="vehicle" id="vehicle" class="form-select" required>
+                            <option value="">---------</option>
+                            {% for vehicle in available_vehicles %}
+                                <option value="{{ vehicle.pk }}">
+                                    {{ vehicle.get_type_display }} - {{ vehicle.model }}
+                                    {% if vehicle.plate_number %}({{ vehicle.plate_number }}){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Назначить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for changing vehicle -->
+<div class="modal fade" id="changeVehicleModal" tabindex="-1" aria-labelledby="changeVehicleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changeVehicleModalLabel">Сменить транспортное средство</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'logistics:courier_vehicle_assign' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="courier" value="{{ courier.pk }}">
+                    <div class="mb-3">
+                        <label for="new_vehicle" class="form-label">Выберите новое транспортное средство</label>
+                        <select name="vehicle" id="new_vehicle" class="form-select" required>
+                            <option value="">---------</option>
+                            {% for vehicle in available_vehicles %}
+                                <option value="{{ vehicle.pk }}">
+                                    {{ vehicle.get_type_display }} - {{ vehicle.model }}
+                                    {% if vehicle.plate_number %}({{ vehicle.plate_number }}){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сменить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

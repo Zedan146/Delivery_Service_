@@ -3,83 +3,86 @@
 {% block title %}Список заказов{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <h2>Список заказов на доставку</h2>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Список заказов</h2>
+        {% if user.is_logistician or user.is_admin %}
+        <div>
+            <a href="{% url 'orders:delivery_report' %}" class="btn btn-primary" target="_blank">
+                <i class="fas fa-file-pdf"></i> Отчет по доставкам
+            </a>
+            <a href="{% url 'orders:order_create' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Новый заказ
+            </a>
+        </div>
+        {% endif %}
     </div>
+
     {% if user.is_logistician or user.is_admin %}
-    <div class="col text-end">
-        <a href="{% url 'orders:order_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Создать заказ
-        </a>
+    <div class="mb-3">
+        <a href="?status=NEW" class="btn btn-outline-primary{% if status == 'NEW' %} active{% endif %}">Новые</a>
+        <a href="?status=ASSIGNED" class="btn btn-outline-info{% if status == 'ASSIGNED' %} active{% endif %}">Назначен</a>
+        <a href="?status=IN_PROGRESS" class="btn btn-outline-warning{% if status == 'IN_PROGRESS' %} active{% endif %}">В процессе</a>
+        <a href="?status=DELIVERED" class="btn btn-outline-success{% if status == 'DELIVERED' %} active{% endif %}">Доставлен</a>
+        <a href="?status=CANCELLED" class="btn btn-outline-danger{% if status == 'CANCELLED' %} active{% endif %}">Отменен</a>
+        <a href="?status=ALL" class="btn btn-outline-secondary{% if status == 'ALL' %} active{% endif %}">Все</a>
     </div>
     {% endif %}
-</div>
 
-{% if user.is_logistician or user.is_admin %}
-<div class="mb-3">
-    <a href="?status=NEW" class="btn btn-outline-primary{% if status == 'NEW' %} active{% endif %}">Новые</a>
-    <a href="?status=ASSIGNED" class="btn btn-outline-info{% if status == 'ASSIGNED' %} active{% endif %}">Назначен</a>
-    <a href="?status=IN_PROGRESS" class="btn btn-outline-warning{% if status == 'IN_PROGRESS' %} active{% endif %}">В процессе</a>
-    <a href="?status=DELIVERED" class="btn btn-outline-success{% if status == 'DELIVERED' %} active{% endif %}">Доставлен</a>
-    <a href="?status=CANCELLED" class="btn btn-outline-danger{% if status == 'CANCELLED' %} active{% endif %}">Отменен</a>
-    <a href="?status=ALL" class="btn btn-outline-secondary{% if status == 'ALL' %} active{% endif %}">Все</a>
-</div>
-{% endif %}
-
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>№ Заказа</th>
-                        <th>Клиент</th>
-                        <th>Адрес доставки</th>
-                        <th>Сумма заказа</th>
-                        <th>Стоимость доставки</th>
-                        <th>Статус</th>
-                        <th>Дата доставки</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in orders %}
-                    <tr>
-                        <td><a href="{% url 'orders:order_detail' order.pk %}">
-                            {{ order.order_number }}</a></td>
-                        <td>{{ order.client }}</td>
-                        <td>{{ order.delivery_address }}</td>
-                        <td>{{ order.order_amount }}</td>
-                        <td>{{ order.delivery_cost }}</td>
-                        <td>
-                            <span class="badge {% if order.status == 'NEW' %}bg-primary
-                                           {% elif order.status == 'ASSIGNED' %}bg-info
-                                           {% elif order.status == 'IN_PROGRESS' %}bg-warning
-                                           {% elif order.status == 'DELIVERED' %}bg-success
-                                           {% else %}bg-danger{% endif %}">
-                                {{ order.get_status_display }}
-                            </span>
-                        </td>
-                        <td>{{ order.delivery_date }}</td>
-                        <td>
-                            <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn-sm btn-info">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            {% if user.is_logistician or user.is_admin %}
-                            <a href="{% url 'orders:order_edit' order.pk %}" class="btn btn-sm btn-warning">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center">Заказы не найдены</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>№ Заказа</th>
+                            <th>Клиент</th>
+                            <th>Адрес доставки</th>
+                            <th>Сумма заказа</th>
+                            <th>Стоимость доставки</th>
+                            <th>Статус</th>
+                            <th>Дата доставки</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td><a href="{% url 'orders:order_detail' order.pk %}">
+                                {{ order.order_number }}</a></td>
+                            <td>{{ order.client }}</td>
+                            <td>{{ order.delivery_address }}</td>
+                            <td>{{ order.order_amount }}</td>
+                            <td>{{ order.delivery_cost }}</td>
+                            <td>
+                                <span class="badge {% if order.status == 'NEW' %}bg-primary
+                                               {% elif order.status == 'ASSIGNED' %}bg-info
+                                               {% elif order.status == 'IN_PROGRESS' %}bg-warning
+                                               {% elif order.status == 'DELIVERED' %}bg-success
+                                               {% else %}bg-danger{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ order.delivery_date }}</td>
+                            <td>
+                                <a href="{% url 'orders:order_detail' order.pk %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if user.is_logistician or user.is_admin %}
+                                <a href="{% url 'orders:order_edit' order.pk %}" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">Заказы не найдены</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

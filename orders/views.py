@@ -15,6 +15,11 @@ import qrcode
 import base64
 from io import BytesIO
 from django.urls import reverse
+from datetime import datetime, timedelta
+from django.db.models import Sum, Count
+from django.db.models.functions import TruncDate
+from django.templatetags.static import static
+import os
 
 @login_required
 def order_list(request):
@@ -327,15 +332,92 @@ def order_receipt_pdf(request, pk):
         'qr_code': qr_code,
     })
     
-    # Создаем PDF
+    # Абсолютный путь к CSS
+    css_path = os.path.join(settings.BASE_DIR, 'static', 'css', 'print_forms.css')
     html = HTML(string=html_string)
-    pdf = html.write_pdf()
+    pdf = html.write_pdf(stylesheets=[css_path])
     
-    # Формируем имя файла
     filename = f'order_receipt_{order.order_number}.pdf'
-    
-    # Отправляем PDF
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response
+
+@login_required
+def delivery_report_pdf(request):
+    """Генерация PDF-отчета по выполненным доставкам."""
+    if not (request.user.is_logistician() or request.user.is_admin()):
+        messages.error(request, 'У вас нет прав для просмотра отчетов')
+        return redirect('orders:order_list')
     
+    # Получаем параметры периода из GET-запроса
+    end_date = request.GET.get('end_date', timezone.now().date())
+    if isinstance(end_date, str):
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    
+    start_date = request.GET.get('start_date', end_date - timedelta(days=30))
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+    
+    # Получаем выполненные доставки за период
+    deliveries = Order.objects.filter(
+        status='DELIVERED',
+        delivery_date__range=[start_date, end_date]
+    ).select_related('courier')
+    
+    # Общая статистика
+    total_deliveries = deliveries.count()
+    total_order_amount = deliveries.aggregate(total=Sum('order_amount'))['total'] or 0
+    total_delivery_cost = deliveries.aggregate(total=Sum('delivery_cost'))['total'] or 0
+    total_amount = total_order_amount + total_delivery_cost
+    
+    # Статистика по курьерам
+    courier_stats = []
+    courier_deliveries = deliveries.values('courier__first_name', 'courier__last_name').annotate(
+        deliveries_count=Count('id'),
+        order_amount=Sum('order_amount'),
+        delivery_cost=Sum('delivery_cost')
+    )
+    
+    for courier in courier_deliveries:
+        courier_stats.append({
+            'name': f"{courier['courier__last_name']} {courier['courier__first_name']}",
+            'deliveries_count': courier['deliveries_count'],
+            'order_amount': courier['order_amount'] or 0,
+            'delivery_cost': courier['delivery_cost'] or 0,
+            'total': (courier['order_amount'] or 0) + (courier['delivery_cost'] or 0)
+        })
+    
+    # Подготовка данных для детализации
+    delivery_details = []
+    for delivery in deliveries:
+        delivery_details.append({
+            'order_number': delivery.order_number,
+            'delivery_date': delivery.delivery_date,
+            'courier_name': f"{delivery.courier.last_name} {delivery.courier.first_name}",
+            'order_amount': delivery.order_amount,
+            'delivery_cost': delivery.delivery_cost,
+            'total': delivery.order_amount + delivery.delivery_cost
+        })
+    
+    # Рендерим HTML
+    html_string = render_to_string('orders/print/delivery_report.html', {
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_deliveries': total_deliveries,
+        'total_order_amount': total_order_amount,
+        'total_delivery_cost': total_delivery_cost,
+        'total_amount': total_amount,
+        'courier_stats': courier_stats,
+        'deliveries': delivery_details,
+        'report_date': timezone.now().date()
+    })
+    
+    # Абсолютный путь к CSS
+    css_path = os.path.join(settings.BASE_DIR, 'static', 'css', 'print_forms.css')
+    html = HTML(string=html_string)
+    pdf = html.write_pdf(stylesheets=[css_path])
+    
+    filename = f'delivery_report_{start_date}_{end_date}.pdf'
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response

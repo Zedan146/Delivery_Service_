@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Курьеры{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Курьеры</h2>
+        <a href="{% url 'users:courier_report' %}" class="btn btn-primary" target="_blank">
+            <i class="fas fa-file-pdf"></i> Печать отчёта
+        </a>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ФИО</th>
+                            <th>Телефон</th>
+                            <th>Email</th>
+                            <th>Транспорт</th>
+                            <th>Подробнее</th>
+                            <th>Эффективность</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for courier in couriers %}
+                        <tr>
+                            <td>{{ courier.get_full_name }}</td>
+                            <td>{{ courier.phone_number }}</td>
+                            <td>{{ courier.email }}</td>
+                            <td>
+                                {% with current_vehicle=courier.current_vehicle %}
+                                    {% if current_vehicle %}
+                                        {{ current_vehicle.vehicle.get_type_display }} - {{ current_vehicle.vehicle.model }}
+                                        <br>
+                                        <small class="text-muted">{{ current_vehicle.vehicle.plate_number|default:"-" }}</small>
+                                    {% else %}
+                                        <span class="text-muted">Не назначено</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <a href="{% url 'users:courier_detail' courier.pk %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye"></i> Подробнее
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'logistics:courier_performance_detail' courier.pk %}" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-chart-line"></i> Эффективность
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

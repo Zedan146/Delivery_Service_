@@ -1,81 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>Квитанция на доставку №{{ order.order_number }}</title>
-    <style>
-        @page {
-            size: A4;
-            margin: 2cm;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 12pt;
-            line-height: 1.4;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .header h1 {
-            font-size: 18pt;
-            margin-bottom: 10px;
-        }
-        .receipt-info {
-            margin-bottom: 20px;
-        }
-        .receipt-info p {
-            margin: 5px 0;
-        }
-        .section {
-            margin-bottom: 20px;
-        }
-        .section h2 {
-            font-size: 14pt;
-            border-bottom: 1px solid #000;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
-        }
-        .client-info, .delivery-info {
-            width: 100%;
-            margin-bottom: 20px;
-        }
-        .client-info td, .delivery-info td {
-            padding: 5px;
-            vertical-align: top;
-        }
-        .client-info td:first-child, .delivery-info td:first-child {
-            width: 200px;
-            font-weight: bold;
-        }
-        .footer {
-            margin-top: 40px;
-            border-top: 1px solid #000;
-            padding-top: 20px;
-        }
-        .signatures {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 40px;
-        }
-        .signature-block {
-            width: 45%;
-            text-align: center;
-        }
-        .signature-line {
-            border-top: 1px solid #000;
-            margin-top: 50px;
-            padding-top: 5px;
-        }
-        .qr-code {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .qr-code img {
-            width: 150px;
-            height: 150px;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/print_forms.css' %}">
 </head>
 <body>
     <div class="header">
@@ -121,15 +50,15 @@
             </tr>
             <tr>
                 <td>Сумма заказа:</td>
-                <td>{{ order.order_amount }} ₽</td>
+                <td>{{ order.order_amount|floatformat:2 }} ₽</td>
             </tr>
             <tr>
                 <td>Стоимость доставки:</td>
-                <td>{{ order.delivery_cost }} ₽</td>
+                <td>{{ order.delivery_cost|floatformat:2 }} ₽</td>
             </tr>
             <tr>
                 <td><strong>Итого к оплате:</strong></td>
-                <td><strong>{{ order.order_amount|add:order.delivery_cost }} ₽</strong></td>
+                <td><strong>{{ order.order_amount|add:order.delivery_cost|floatformat:2 }} ₽</strong></td>
             </tr>
         </table>
     </div>

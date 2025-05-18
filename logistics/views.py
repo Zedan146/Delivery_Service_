@@ -117,15 +117,6 @@ def vehicle_delete(request, pk):
     return render(request, 'logistics/vehicle_confirm_delete.html', {'vehicle': vehicle})
 
 @login_required
-def courier_vehicle_list(request):
-    if not (request.user.is_logistician() or request.user.is_admin()):
-        messages.error(request, 'У вас нет прав для просмотра списка транспортных средств курьеров')
-        return redirect('home')
-    
-    courier_vehicles = CourierVehicle.objects.filter(is_current=True)
-    return render(request, 'logistics/courier_vehicle_list.html', {'courier_vehicles': courier_vehicles})
-
-@login_required
 def courier_vehicle_assign(request):
     """Назначение транспортного средства курьеру"""
     if not (request.user.is_logistician() or request.user.is_admin()):
@@ -147,7 +138,7 @@ def courier_vehicle_assign(request):
             courier_vehicle.save()
             
             messages.success(request, 'Транспортное средство успешно назначено курьеру')
-            return redirect('logistics:courier_vehicle_list')
+            return redirect('users:courier_detail', form.cleaned_data['courier'].pk)
     else:
         form = CourierVehicleForm()
     
@@ -163,7 +154,7 @@ def courier_vehicle_unassign(request, pk):
         courier_vehicle.is_current = False
         courier_vehicle.save()
         messages.success(request, 'Транспортное средство успешно снято с курьера')
-    return redirect('logistics:courier_vehicle_list')
+        return redirect('users:courier_detail', courier_vehicle.courier.pk)
 
 @login_required
 def delivery_report_list(request):

@@ -36,14 +36,26 @@
                                 <a class="nav-link" href="{% url 'logistics:vehicle_list' %}">Транспорт</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'logistics:courier_vehicle_list' %}">Назначения</a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link" href="{% url 'logistics:delivery_report_list' %}">Отчеты</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'logistics:courier_performance_list' %}">Эффективность</a>
-                            </li>
+                            {% if user.is_authenticated and user.is_logistician %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'users:courier_list' %}">Курьеры</a>
+                                </li>
+                            {% endif %}
+                            {% if user.is_authenticated and user.is_admin %}
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="staffDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Сотрудники
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="staffDropdown">
+                                        <li><a class="dropdown-item" href="{% url 'users:courier_list' %}">Курьеры</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'users:logistician_list' %}">Логисты</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-success" href="{% url 'users:staff_create' %}"><i class="fas fa-user-plus"></i> Добавить сотрудника</a></li>
+                                    </ul>
+                                </li>
+                            {% endif %}
                         {% endif %}
                         {% if user.is_courier %}
                             <li class="nav-item">

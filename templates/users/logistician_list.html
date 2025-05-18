@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Логисты{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Логисты</h2>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ФИО</th>
+                            <th>Телефон</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for logistician in logisticians %}
+                        <tr>
+                            <td>{{ logistician.get_full_name }}</td>
+                            <td>{{ logistician.phone_number }}</td>
+                            <td>{{ logistician.email }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
