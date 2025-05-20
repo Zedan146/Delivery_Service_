@@ -30,9 +30,16 @@ class ClientAddressForm(forms.ModelForm):
     """Форма для создания и редактирования адреса клиента"""
     class Meta:
         model = ClientAddress
-        fields = ['address', 'is_default']
+        fields = [
+            'city', 'street', 'house_number', 'apartment', 'postal_code', 'courier_notes', 'is_default'
+        ]
         widgets = {
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'street': forms.TextInput(attrs={'class': 'form-control'}),
+            'house_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'apartment': forms.TextInput(attrs={'class': 'form-control'}),
+            'postal_code': forms.TextInput(attrs={'class': 'form-control'}),
+            'courier_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'is_default': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 

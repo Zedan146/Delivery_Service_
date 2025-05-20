@@ -170,6 +170,27 @@ def client_edit(request, pk):
         'formset': formset,
     })
 
+@login_required
+def client_delete(request, pk):
+    """Удаление клиента с подтверждением"""
+    client = get_object_or_404(Client, pk=pk)
+    if not (request.user.is_logistician() or request.user.is_admin()):
+        messages.error(request, 'У вас нет прав для удаления клиентов')
+        return redirect('orders:client_list')
+
+    # Проверка на связанные заказы или адреса
+    has_orders = client.orders.exists() if hasattr(client, 'orders') else False
+    has_addresses = client.addresses.exists() if hasattr(client, 'addresses') else False
+    if (has_orders or has_addresses) and request.method == 'POST':
+        messages.error(request, 'Нельзя удалить клиента с существующими заказами или адресами. Сначала удалите все заказы и адреса клиента.')
+        return redirect('orders:client_detail', pk=client.pk)
+
+    if request.method == 'POST':
+        client.delete()
+        messages.success(request, 'Клиент успешно удалён')
+        return redirect('orders:client_list')
+    return render(request, 'clients/client_confirm_delete.html', {'client': client, 'has_orders': has_orders, 'has_addresses': has_addresses})
+
 def is_courier(user):
     return user.role == 'COURIER'
 
@@ -332,7 +353,7 @@ def order_receipt_pdf(request, pk):
     qr.add_data(f'Заказ #{order.order_number}\n'
                 f'Статус: {order.get_status_display()}\n'
                 f'Клиент: {order.client.get_full_name()}\n'
-                f'Адрес: {order.delivery_address.address}\n'
+                f'Адрес: {order.delivery_address.get_full_address()}\n'
                 f'Дата доставки: {order.delivery_date}')
     qr.make(fit=True)
     
@@ -374,7 +395,6 @@ def delivery_report_pdf(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     
-    # Если даты не указаны, используем последние 30 дней
     if not start_date:
         start_date = (timezone.now() - timedelta(days=30)).date()
     else:
@@ -385,35 +405,36 @@ def delivery_report_pdf(request):
     else:
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     
-    # Получаем заказы за указанный период
-    orders = Order.objects.filter(
-        delivery_date__range=[start_date, end_date]
-    ).select_related('client', 'courier', 'delivery_address')
+    # Получаем только завершённые доставки за период
+    reports = DeliveryReport.objects.filter(
+        delivery_completed__date__range=[start_date, end_date]
+    ).select_related('order', 'courier', 'vehicle', 'order__client', 'order__delivery_address')
+    orders = [r.order for r in reports]
     
     # Статистика по статусам
     status_stats = {}
     for status, _ in Order.Status.choices:
-        count = orders.filter(status=status).count()
+        count = sum(1 for o in orders if o.status == status)
         if count > 0:
             status_stats[dict(Order.Status.choices)[status]] = count
     
     # Статистика по курьерам
     courier_stats = {}
     for courier in User.objects.filter(role='COURIER'):
-        courier_orders = orders.filter(courier=courier)
-        if courier_orders.exists():
+        courier_orders = [o for o in orders if o.courier == courier]
+        if courier_orders:
             courier_stats[courier] = {
-                'total': courier_orders.count(),
-                'delivered': courier_orders.filter(status='DELIVERED').count(),
-                'in_progress': courier_orders.filter(status='IN_PROGRESS').count(),
-                'cancelled': courier_orders.filter(status='CANCELLED').count(),
+                'total': len(courier_orders),
+                'delivered': sum(1 for o in courier_orders if o.status == 'DELIVERED'),
+                'in_progress': sum(1 for o in courier_orders if o.status == 'IN_PROGRESS'),
+                'cancelled': sum(1 for o in courier_orders if o.status == 'CANCELLED'),
             }
     
     # Общая статистика
-    total_orders = orders.count()
-    total_amount = orders.aggregate(total=Sum('order_amount'))['total'] or 0
+    total_orders = len(orders)
+    total_amount = sum(o.order_amount for o in orders)
     average_amount = total_amount / total_orders if total_orders > 0 else 0
-    success_rate = (orders.filter(status='DELIVERED').count() / total_orders * 100) if total_orders > 0 else 0
+    success_rate = (sum(1 for o in orders if o.status == 'DELIVERED') / total_orders * 100) if total_orders > 0 else 0
     
     # Рендерим HTML-шаблон
     html_string = render_to_string('print/delivery_report.html', {
@@ -446,8 +467,12 @@ def delivery_report_pdf(request):
 def get_client_addresses(request):
     """Получение списка адресов клиента для AJAX-запроса"""
     client_id = request.GET.get('client_id')
-    if client_id:
-        addresses = ClientAddress.objects.filter(client_id=client_id).order_by('-is_default')
-        data = [{'id': addr.id, 'address': addr.address} for addr in addresses]
-        return JsonResponse(data, safe=False)
-    return JsonResponse([], safe=False)
+    if not client_id:
+        return JsonResponse({'error': 'Не указан ID клиента'}, status=400)
+    
+    try:
+        addresses = ClientAddress.objects.filter(client_id=client_id)
+        data = [{'id': addr.id, 'address': addr.get_full_address()} for addr in addresses]
+        return JsonResponse({'addresses': data})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

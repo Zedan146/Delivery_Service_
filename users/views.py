@@ -65,6 +65,23 @@ def courier_list(request):
     return render(request, 'users/courier_list.html', {'couriers': couriers})
 
 
+def format_timedelta(td):
+    total_seconds = int(td.total_seconds())
+    days, remainder = divmod(total_seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    parts = []
+    if days:
+        parts.append(f"{days} дн.")
+    if hours:
+        parts.append(f"{hours} ч.")
+    if minutes:
+        parts.append(f"{minutes} мин.")
+    if seconds or not parts:
+        parts.append(f"{seconds} сек.")
+    return " ".join(parts)
+
+
 @login_required
 def courier_detail(request, pk):
     """Детальная информация о курьере (доступно админам и логистам)"""
@@ -89,20 +106,20 @@ def courier_detail(request, pk):
     total_delivered = delivered_orders.count()
     total_earnings = delivered_orders.aggregate(total=Sum('delivery_cost'))['total'] or 0
     
-    # Рассчитываем среднее время доставки
-    delivery_times = []
-    for order in delivered_orders:
-        if order.delivery_date and order.created_at:
-            # Конвертируем delivery_date в datetime если это date
-            delivery_datetime = timezone.make_aware(
-                datetime.combine(order.delivery_date, datetime.min.time())
-            ) if isinstance(order.delivery_date, date) else order.delivery_date
-            delivery_time = delivery_datetime - order.created_at
-            delivery_times.append(delivery_time)
-    
+    # Новый расчет среднего времени доставки по DeliveryReport
+    reports = DeliveryReport.objects.filter(
+        courier=courier,
+        delivery_started__isnull=False,
+        delivery_completed__isnull=False
+    )
+    delivery_times = [
+        (r.delivery_completed - r.delivery_started).total_seconds()
+        for r in reports
+        if r.delivery_completed and r.delivery_started
+    ]
     avg_time = None
     if delivery_times:
-        avg_seconds = sum(t.total_seconds() for t in delivery_times) / len(delivery_times)
+        avg_seconds = sum(delivery_times) / len(delivery_times)
         avg_time = timedelta(seconds=avg_seconds)
     
     # Получаем доступные ТС для назначения
@@ -115,7 +132,7 @@ def courier_detail(request, pk):
         'delivered_orders': delivered_orders,
         'total_delivered': total_delivered,
         'total_earnings': total_earnings,
-        'avg_time': avg_time,
+        'avg_time': format_timedelta(avg_time) if avg_time else None,
         'current_vehicle': courier.current_vehicle,
         'available_vehicles': available_vehicles,
     }
@@ -158,7 +175,7 @@ def courier_report_pdf(request):
             'delivered_orders': delivered_orders,
         })
         
-    html_string = render_to_string('users/print/courier_report.html', {
+    html_string = render_to_string('print/courier_report.html', {
         'couriers': couriers,
         'report_date': timezone.now().date(),
     })
@@ -198,3 +215,49 @@ def staff_create(request):
         form = StaffCreationForm()
         
     return render(request, 'users/staff_create.html', {'form': form})
+
+
+@login_required
+def staff_edit(request, pk):
+    """Редактирование сотрудника (курьера или логиста)"""
+    if not request.user.is_admin():
+        messages.error(request, 'У вас нет прав для редактирования сотрудников')
+        return redirect('users:profile')
+    
+    staff = get_object_or_404(CustomUser, pk=pk)
+    if request.method == 'POST':
+        form = CustomUserChangeForm(request.POST, instance=staff)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Информация о сотруднике успешно обновлена')
+            return redirect('users:logistician_list' if staff.role == staff.Role.LOGISTICIAN else 'users:courier_list')
+    else:
+        form = CustomUserChangeForm(instance=staff)
+    
+    return render(request, 'users/staff_form.html', {
+        'form': form,
+        'title': 'Редактирование сотрудника',
+        'staff': staff
+    })
+
+
+@login_required
+def staff_delete(request, pk):
+    """Удаление сотрудника (курьера или логиста)"""
+    if not request.user.is_admin():
+        messages.error(request, 'У вас нет прав для удаления сотрудников')
+        return redirect('users:profile')
+    
+    staff = get_object_or_404(CustomUser, pk=pk)
+    
+    # Проверяем, не назначен ли курьер на активные заказы
+    if staff.role == staff.Role.COURIER and Order.objects.filter(courier=staff, status__in=['ASSIGNED', 'IN_PROGRESS']).exists():
+        messages.error(request, 'Невозможно удалить курьера, так как у него есть активные заказы')
+        return redirect('users:courier_list')
+    
+    if request.method == 'POST':
+        staff.delete()
+        messages.success(request, 'Сотрудник успешно удален')
+        return redirect('users:logistician_list' if staff.role == staff.Role.LOGISTICIAN else 'users:courier_list')
+    
+    return render(request, 'users/staff_confirm_delete.html', {'staff': staff})

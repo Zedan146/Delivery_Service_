@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Удаление сотрудника{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h2 class="mb-0">Подтверждение удаления</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Вы уверены, что хотите удалить сотрудника "{{ staff.get_full_name }}"?</p>
+                    <p>Это действие нельзя будет отменить.</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                            <a href="{% if staff.role == staff.Role.LOGISTICIAN %}{% url 'users:logistician_list' %}{% else %}{% url 'users:courier_list' %}{% endif %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

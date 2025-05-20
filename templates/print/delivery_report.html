@@ -121,7 +121,15 @@
                 <tr>
                     <td>{{ order.order_number }}</td>
                     <td>{{ order.client.get_full_name }}</td>
-                    <td>{{ order.delivery_address.address }}</td>
+                    <td>
+                        {{ order.delivery_address.get_full_address }}
+                        {% if order.delivery_address.postal_code %}
+                            <span class="text-muted">({{ order.delivery_address.postal_code }})</span>
+                        {% endif %}
+                        {% if order.delivery_address.courier_notes %}
+                            <div class="small text-muted">Комментарий: {{ order.delivery_address.courier_notes }}</div>
+                        {% endif %}
+                    </td>
                     <td>{{ order.order_amount }} ₽</td>
                     <td>{{ order.get_status_display }}</td>
                     <td>{{ order.delivery_date|date:"d.m.Y" }}</td>

@@ -12,4 +12,6 @@ urlpatterns = [
     path('couriers/print/', views.courier_report_pdf, name='courier_report'),
     path('logisticians/', views.logistician_list, name='logistician_list'),
     path('staff/create/', views.staff_create, name='staff_create'),
+    path('staff/<int:pk>/edit/', views.staff_edit, name='staff_edit'),
+    path('staff/<int:pk>/delete/', views.staff_delete, name='staff_delete'),
 ] 

@@ -5,7 +5,7 @@ from .models import Client, ClientAddress
 class ClientAddressInline(admin.TabularInline):
     model = ClientAddress
     extra = 1
-    fields = ('address', 'is_default')
+    fields = ('city', 'street', 'house_number', 'apartment', 'postal_code', 'courier_notes', 'is_default')
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
@@ -16,7 +16,11 @@ class ClientAdmin(admin.ModelAdmin):
 
 @admin.register(ClientAddress)
 class ClientAddressAdmin(admin.ModelAdmin):
-    list_display = ('client', 'address', 'is_default', 'created_at')
+    list_display = ('client', 'get_full_address', 'is_default', 'created_at')
     list_filter = ('is_default', 'created_at')
-    search_fields = ('client__last_name', 'client__first_name', 'address')
+    search_fields = ('client__last_name', 'client__first_name', 'city', 'street', 'house_number', 'apartment', 'postal_code')
     raw_id_fields = ('client',)
+
+    def get_full_address(self, obj):
+        return obj.get_full_address()
+    get_full_address.short_description = 'Адрес'

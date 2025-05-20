@@ -63,9 +63,15 @@
                             <ul class="mb-0 ps-3">
                                 {% for address in client.addresses.all %}
                                     <li>
-                                        {{ address.address }}
+                                        {{ address.get_full_address }}
+                                        {% if address.postal_code %}
+                                            <span class="text-muted">({{ address.postal_code }})</span>
+                                        {% endif %}
                                         {% if address.is_default %}
                                             <span class="badge bg-primary">По умолчанию</span>
+                                        {% endif %}
+                                        {% if address.courier_notes %}
+                                            <div class="small text-muted">Комментарий: {{ address.courier_notes }}</div>
                                         {% endif %}
                                     </li>
                                 {% empty %}

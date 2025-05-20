@@ -74,8 +74,31 @@
                             {% endif %}
                             <div class="card mb-2 p-2">
                                 {{ address_form.id }}
-                                {{ address_form.address|as_crispy_field }}
-                                {{ address_form.is_default|as_crispy_field }}
+                                <div class="row">
+                                    <div class="col-md-4 mb-2">
+                                        {{ address_form.city|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        {{ address_form.street|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        {{ address_form.house_number|as_crispy_field }}
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-2">
+                                        {{ address_form.apartment|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        {{ address_form.postal_code|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        {{ address_form.is_default|as_crispy_field }}
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    {{ address_form.courier_notes|as_crispy_field }}
+                                </div>
                                 {% if address_form.instance.pk %}
                                     <label>Удалить: {{ address_form.DELETE }}</label>
                                 {% endif %}

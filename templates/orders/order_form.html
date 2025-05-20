@@ -32,7 +32,7 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock %} 
 
 {% block extra_js %}
 <script>
@@ -47,14 +47,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json())
                 .then(data => {
                     addressSelect.innerHTML = '';
-                    data.forEach(addr => {
-                        const option = document.createElement('option');
-                        option.value = addr.id;
-                        option.textContent = addr.address;
-                        addressSelect.appendChild(option);
-                    });
+                    if (data.addresses) {
+                        data.addresses.forEach(addr => {
+                            const option = document.createElement('option');
+                            option.value = addr.id;
+                            option.textContent = addr.address;
+                            addressSelect.appendChild(option);
+                        });
+                    }
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(error => {
+                    console.error('Error:', error);
+                    addressSelect.innerHTML = '';
+                });
         } else {
             addressSelect.innerHTML = '';
         }

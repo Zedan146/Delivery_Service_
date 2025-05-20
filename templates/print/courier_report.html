@@ -48,7 +48,7 @@
         <h2>Детализация по курьерам</h2>
         {% for courier in couriers %}
         <div class="courier-section">
-            <div class="courier-header">{{ courier.full_name }} ({{ courier.phone_number }}, {{ courier.email }})</div>
+            <div class="courier-header">{{ courier.full_name }} ({{ courier.phone_number }})</div>
             <p><strong>Выполнено заказов:</strong> {{ courier.total_delivered }}</p>
             <p><strong>Сумма доставок:</strong> {{ courier.total_earnings|floatformat:2 }} ₽</p>
             <p><strong>Среднее время доставки:</strong> {{ courier.avg_time|default:'—' }}</p>

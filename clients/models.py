@@ -25,8 +25,8 @@ class Client(models.Model):
         db_index=True,
         validators=[EmailValidator()]
     )
-    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания', db_index=True)
-    updated_at = models.DateTimeField(default=timezone.now, verbose_name='Дата обновления')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата регистрации', db_index=True)
+    updated_at = models.DateTimeField(default=timezone.now, verbose_name='Дата обновления профиля')
     
     def format_phone_number(self):
         """Форматирует номер телефона в формат +7 (XXX) XXX-XX-XX"""
@@ -59,7 +59,23 @@ class Client(models.Model):
 class ClientAddress(models.Model):
     """Модель для хранения адресов клиентов"""
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='addresses', verbose_name='Клиент')
-    address = models.TextField(verbose_name='Адрес')
+    city = models.CharField(max_length=100, verbose_name='Город', blank=True, null=True)
+    street = models.CharField(max_length=200, verbose_name='Улица', blank=True, null=True)
+    house_number = models.CharField(max_length=20, verbose_name='Номер дома', blank=True, null=True)
+    apartment = models.CharField(max_length=20, blank=True, verbose_name='Номер квартиры')
+    postal_code = models.CharField(
+        max_length=6,
+        verbose_name='Почтовый индекс',
+        blank=True,
+        null=True,
+        validators=[
+            RegexValidator(
+                regex=r'^\d{6}$',
+                message='Почтовый индекс должен состоять из 6 цифр'
+            )
+        ]
+    )
+    courier_notes = models.TextField(blank=True, verbose_name='Комментарий для курьера')
     is_default = models.BooleanField(default=False, verbose_name='Адрес по умолчанию')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Дата создания')
     updated_at = models.DateTimeField(default=timezone.now, verbose_name='Дата обновления')
@@ -76,8 +92,21 @@ class ClientAddress(models.Model):
         self.updated_at = timezone.now()
         super().save(*args, **kwargs)
     
+    def get_full_address(self):
+        """Возвращает полный адрес в формате строки"""
+        address_parts = []
+        if self.city:
+            address_parts.append(self.city)
+        if self.street:
+            address_parts.append(f"ул. {self.street}")
+        if self.house_number:
+            address_parts.append(f"д. {self.house_number}")
+        if self.apartment:
+            address_parts.append(f"кв. {self.apartment}")
+        return ", ".join(address_parts) if address_parts else "Адрес не указан"
+    
     def __str__(self):
-        return f"Адрес {self.client}: {self.address}"
+        return self.get_full_address()
     
     class Meta:
         verbose_name = 'Адрес клиента'
