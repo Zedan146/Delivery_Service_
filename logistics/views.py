@@ -196,31 +196,27 @@ def courier_performance_list(request):
     return render(request, 'logistics/courier_performance_list.html', {'performances': performances})
 
 @login_required
-def courier_performance_detail(request, courier_id):
-    if not (request.user.is_logistician() or request.user.is_admin()):
+def courier_performance_detail(request, courier_id=None):
+    user = request.user
+    if user.is_courier():
+        courier_id = user.pk
+    elif not (user.is_logistician() or user.is_admin()):
         messages.error(request, 'У вас нет прав для просмотра отчетов о производительности курьеров')
+        return redirect('home')
+    elif courier_id is None:
+        messages.error(request, 'Не указан курьер')
         return redirect('logistics:courier_performance_list')
-    
+
     performances = CourierPerformance.objects.filter(courier_id=courier_id).order_by('-date')
-    
-    # Рассчитываем общую статистику
     total_orders = sum(p.orders_completed for p in performances)
     total_earnings = sum(p.total_earnings for p in performances)
-    
-    # Рассчитываем среднее время доставки
     total_time = sum((p.total_delivery_time for p in performances), timedelta())
     avg_delivery_time = total_time / total_orders if total_orders > 0 else timedelta()
-    
-    # Форматируем среднее время доставки
-    hours = avg_delivery_time.total_seconds() // 3600
-    minutes = (avg_delivery_time.total_seconds() % 3600) // 60
-    avg_delivery_time_str = f"{int(hours)}ч {int(minutes)}м" if hours > 0 else f"{int(minutes)}м"
-    
+
     context = {
         'performances': performances,
         'total_orders': total_orders,
         'total_earnings': total_earnings,
-        'avg_delivery_time': avg_delivery_time_str
+        'avg_delivery_time': avg_delivery_time
     }
-    
     return render(request, 'logistics/courier_performance_detail.html', context)

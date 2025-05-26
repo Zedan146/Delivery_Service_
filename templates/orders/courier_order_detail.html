@@ -31,6 +31,11 @@
                         
                         <dt class="col-sm-4">Дата доставки:</dt>
                         <dd class="col-sm-8">{{ order.delivery_date }}</dd>
+
+                        {% if order.notes %}
+                        <dt class="col-sm-4">Комментарий клиента:</dt>
+                        <dd class="col-sm-8">{{ order.notes|linebreaks }}</dd>
+                        {% endif %}
                         
                         <dt class="col-sm-4">Текущий статус:</dt>
                         <dd class="col-sm-8">

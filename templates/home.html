@@ -25,7 +25,7 @@
                         <p class="card-text">Вы можете просматривать и обновлять статус своих заказов.</p>
                         <div class="mt-3">
                             <a href="{% url 'couriers:order_list' %}" class="btn btn-primary me-2">Мои заказы</a>
-                            <a href="{% url 'couriers:performance' %}" class="btn btn-primary">Моя статистика</a>
+                            <a href="{% url 'logistics:courier_performance_detail' user.pk %}" class="btn btn-primary">Моя статистика</a>
                         </div>
                     {% endif %}
                 </div>

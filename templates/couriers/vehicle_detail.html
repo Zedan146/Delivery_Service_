@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Мой транспорт{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Мой транспорт</h2>
+    {% if vehicle %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Информация о транспортном средстве</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Тип:</div>
+                <div class="col-sm-8">{{ vehicle.get_type_display }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Модель:</div>
+                <div class="col-sm-8">{{ vehicle.model }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Цвет:</div>
+                <div class="col-sm-8">{{ vehicle.color }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Номер:</div>
+                <div class="col-sm-8">{{ vehicle.plate_number|default:"-" }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Статус:</div>
+                <div class="col-sm-8">
+                    {% if vehicle.is_active %}
+                        Активен
+                    {% else %}
+                        Неактивен
+                    {% endif %}
+                </div>
+            </div>
+            {% if vehicle.description %}
+            <div class="row mb-3">
+                <div class="col-sm-4 fw-bold">Описание:</div>
+                <div class="col-sm-8">{{ vehicle.description|linebreaks }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">У вас пока нет назначенного транспортного средства.</div>
+    {% endif %}
+</div>
+{% endblock %} 

@@ -65,7 +65,7 @@
                                 <a class="nav-link" href="{% url 'couriers:vehicle_list' %}">Мой транспорт</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'couriers:performance' %}">Моя статистика</a>
+                                <a class="nav-link" href="{% url 'logistics:courier_performance_detail' user.pk %}">Моя статистика</a>
                             </li>
                         {% endif %}
                         <li class="nav-item">

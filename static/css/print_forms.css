@@ -1,0 +1,100 @@
+@page {
+    size: A4;
+    margin: 2cm;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    font-size: 12pt;
+    line-height: 1.4;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-size: 18pt;
+    margin-bottom: 10px;
+}
+
+.report-info {
+    margin-bottom: 20px;
+}
+
+.report-info p {
+    margin: 5px 0;
+}
+
+.section {
+    margin-bottom: 20px;
+}
+
+.section h2 {
+    font-size: 14pt;
+    border-bottom: 1px solid #000;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th, td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f0f0f0;
+}
+
+.total {
+    font-weight: bold;
+    text-align: right;
+    margin-top: 20px;
+}
+
+.footer {
+    margin-top: 40px;
+    border-top: 1px solid #000;
+    padding-top: 20px;
+}
+
+.signature {
+    text-align: right;
+    margin-top: 50px;
+}
+
+.signature-line {
+    border-top: 1px solid #000;
+    width: 200px;
+    margin-left: auto;
+    margin-top: 20px;
+}
+
+.qr-code {
+    text-align: center;
+    margin: 10px 0;
+}
+
+.qr-code img {
+    width: 100px;
+    height: 100px;
+}
+
+.footer-with-qr {
+    margin-top: 20px;
+    border-top: 1px solid #000;
+    padding-top: 10px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+} 

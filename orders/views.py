@@ -17,7 +17,7 @@ import qrcode
 import base64
 from io import BytesIO
 from django.urls import reverse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from django.db.models import Sum, Count
 from django.db.models.functions import TruncDate
 from django.templatetags.static import static
@@ -301,25 +301,29 @@ def delivery_report_pdf(request):
         messages.error(request, 'У вас нет прав для просмотра отчетов')
         return HttpResponseForbidden()
     
-    # Получаем параметры фильтрации
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
-    
-    if not start_date:
+
+    if not start_date or start_date == '':
         start_date = (timezone.now() - timedelta(days=30)).date()
     else:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-    
-    if not end_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        except ValueError:
+            start_date = (timezone.now() - timedelta(days=30)).date()
+
+    if not end_date or end_date == '':
         end_date = timezone.now().date()
     else:
-        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-    
-    # Получаем только завершённые доставки за период
-    reports = DeliveryReport.objects.filter(
-        delivery_completed__date__range=[start_date, end_date]
-    ).select_related('order', 'courier', 'vehicle', 'order__client', 'order__delivery_address')
-    orders = [r.order for r in reports]
+        try:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        except ValueError:
+            end_date = timezone.now().date()
+
+    all_orders = Order.objects.all().values('order_number', 'delivery_date')
+    orders = Order.objects.filter(
+        delivery_date__range=[start_date, end_date]
+    ).select_related('client', 'delivery_address', 'courier')
     
     # Статистика по статусам
     status_stats = {}
@@ -355,9 +359,9 @@ def delivery_report_pdf(request):
         'total_amount': total_amount,
         'average_amount': average_amount,
         'success_rate': success_rate,
+        'generated_at': timezone.now(),
         'start_date': start_date,
         'end_date': end_date,
-        'generated_at': timezone.now(),
     })
     
     # Абсолютный путь к CSS для WeasyPrint
@@ -366,7 +370,7 @@ def delivery_report_pdf(request):
     pdf = html.write_pdf(stylesheets=[CSS(filename=css_path)])
     
     # Формируем имя файла
-    filename = f'delivery_report_{start_date}_{end_date}.pdf'
+    filename = f'delivery_report_{timezone.now().strftime("%Y-%m-%d")}.pdf'
     
     # Создаем HTTP-ответ
     response = HttpResponse(pdf, content_type='application/pdf')

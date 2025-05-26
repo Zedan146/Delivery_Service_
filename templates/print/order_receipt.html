@@ -71,7 +71,7 @@
         </table>
     </div>
 
-    <div class="footer">
+    <div class="footer-with-qr">
         <div class="signatures">
             <div class="signature-block">
                 <p>Подпись курьера</p>
@@ -82,11 +82,10 @@
                 <div class="signature-line"></div>
             </div>
         </div>
-    </div>
-
-    <div class="qr-code">
-        <p>QR-код для отслеживания заказа</p>
-        <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+        <div class="qr-code">
+            <p>QR-код для отслеживания заказа</p>
+            <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+        </div>
     </div>
 </body>
 </html> 

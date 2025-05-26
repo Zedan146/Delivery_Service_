@@ -10,7 +10,7 @@ from decimal import Decimal
 
 @login_required
 def courier_orders(request):
-    """View for listing orders assigned to the current courier и фильтрации по статусу заказа."""
+    """Просмотр заказов, назначенных текущему курьеру, и фильтрация по статусу заказа."""
     if not request.user.is_courier:
         raise PermissionDenied
 
@@ -78,7 +78,7 @@ def courier_orders(request):
 
 @login_required
 def courier_order_detail(request, pk):
-    """View for displaying and updating courier order details."""
+    """Просмотр и обновление деталей заказа курьера."""
     if not request.user.is_courier:
         raise PermissionDenied
     
@@ -137,19 +137,15 @@ def courier_order_detail(request, pk):
 
 @login_required
 def courier_vehicles(request):
-    """View for listing vehicles assigned to the current courier."""
+    """Показ детальной информации о текущем назначенном транспорте курьера."""
     if not request.user.is_courier:
         raise PermissionDenied
-    
-    courier_vehicles = CourierVehicle.objects.filter(
-        courier=request.user,
-        is_current=True
-    ).select_related('vehicle')
-    
-    vehicles = [cv.vehicle for cv in courier_vehicles]
-    return render(request, 'couriers/vehicle_list.html', {'vehicles': vehicles})
+    current_cv = CourierVehicle.objects.filter(courier=request.user, is_current=True).select_related('vehicle').first()
+    vehicle = current_cv.vehicle if current_cv else None
+    return render(request, 'couriers/vehicle_detail.html', {'vehicle': vehicle})
 
 def update_courier_performance(courier, delivery_time, delivery_cost):
+    # Расчет заработка курьера за доставку
     earnings = max(delivery_cost * Decimal('0.3'), Decimal('200'))
     perf, created = CourierPerformance.objects.get_or_create(
         courier=courier,
@@ -160,35 +156,3 @@ def update_courier_performance(courier, delivery_time, delivery_cost):
     perf.total_delivery_time += delivery_time
     perf.total_earnings += earnings
     perf.save()
-
-@login_required
-def courier_performance(request):
-    """View for displaying courier's own performance statistics."""
-    if not request.user.is_courier:
-        raise PermissionDenied
-    
-    performances = CourierPerformance.objects.filter(
-        courier=request.user
-    ).order_by('-date')
-    
-    # Рассчитываем общую статистику
-    total_orders = sum(p.orders_completed for p in performances)
-    total_earnings = sum(p.total_earnings for p in performances)
-    
-    # Рассчитываем среднее время доставки
-    total_time = sum((p.total_delivery_time for p in performances), timedelta())
-    avg_delivery_time = total_time / total_orders if total_orders > 0 else timedelta()
-    
-    # Форматируем среднее время доставки
-    hours = avg_delivery_time.total_seconds() // 3600
-    minutes = (avg_delivery_time.total_seconds() % 3600) // 60
-    avg_delivery_time_str = f"{int(hours)}ч {int(minutes)}м" if hours > 0 else f"{int(minutes)}м"
-    
-    context = {
-        'performances': performances,
-        'total_orders': total_orders,
-        'total_earnings': total_earnings,
-        'avg_delivery_time': avg_delivery_time_str
-    }
-    
-    return render(request, 'couriers/performance.html', context)

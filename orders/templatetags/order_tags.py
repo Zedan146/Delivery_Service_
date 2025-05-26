@@ -16,4 +16,12 @@ def divisibleby(value, arg):
     try:
         return float(value) / float(arg)
     except (ValueError, TypeError, ZeroDivisionError):
+        return 0
+
+@register.filter
+def percentage(value, total):
+    """Вычисляет процент от числа"""
+    try:
+        return (float(value) / float(total)) * 100
+    except (ValueError, TypeError, ZeroDivisionError):
         return 0 

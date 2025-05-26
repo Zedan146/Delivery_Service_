@@ -18,6 +18,20 @@ class CustomUserCreationForm(UserCreationForm):
 
 class CustomUserChangeForm(UserChangeForm):
     """Форма редактирования пользователя для админки"""
+    role = forms.ChoiceField(
+        choices=[
+            (CustomUser.Role.COURIER, 'Курьер'),
+            (CustomUser.Role.LOGISTICIAN, 'Логист'),
+        ],
+        label='Роль'
+    )
+    new_password1 = forms.CharField(
+        label='Новый пароль', widget=forms.PasswordInput, required=False
+    )
+    new_password2 = forms.CharField(
+        label='Подтверждение нового пароля', widget=forms.PasswordInput, required=False
+    )
+
     def __init__(self, *args, **kwargs):
         user = kwargs.get('instance', None)
         super().__init__(*args, **kwargs)
@@ -38,9 +52,27 @@ class CustomUserChangeForm(UserChangeForm):
             if 'role' in self.fields and not (hasattr(user, 'is_admin') and user.is_admin()):
                 self.fields['role'].disabled = True
 
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('new_password1')
+        password2 = cleaned_data.get('new_password2')
+        if password1 or password2:
+            if password1 != password2:
+                self.add_error('new_password2', 'Пароли не совпадают')
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get('new_password1')
+        if password:
+            user.set_password(password)
+        if commit:
+            user.save()
+        return user
+
     class Meta(UserChangeForm.Meta):
         model = CustomUser
-        fields = ('username', 'first_name', 'last_name', 'email', 'phone_number', 'address', 'avatar', 'password')
+        fields = ('username', 'first_name', 'last_name', 'email', 'phone_number', 'address', 'avatar', 'password', 'role')
         fieldsets = (
             (None, {'fields': ('username', 'password')}),
             ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'phone_number', 'address', 'avatar')}),

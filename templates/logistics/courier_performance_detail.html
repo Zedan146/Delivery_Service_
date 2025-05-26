@@ -34,7 +34,7 @@
                     <div class="card">
                         <div class="card-body text-center">
                             <h5 class="card-title">Среднее время доставки</h5>
-                            <p class="display-4">{{ avg_delivery_time }}</p>
+                            <p class="display-4">{{ avg_delivery_time|format_timedelta }}</p>
                         </div>
                     </div>
                 </div>
@@ -76,10 +76,12 @@
         </div>
     </div>
 
+    {% if not user.is_courier %}
     <div class="mt-3">
         <a href="{% url 'logistics:courier_performance_list' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Назад к списку
         </a>
     </div>
+    {% endif %}
 </div>
 {% endblock %} 
