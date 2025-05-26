@@ -13,7 +13,7 @@ from django.db.models import Count, Sum, Avg
 
 from weasyprint import HTML
 
-from .forms import CustomUserChangeForm, StaffCreationForm
+from .forms import CustomUserChangeForm, StaffCreationForm, ProfileEditForm
 from .models import CustomUser
 from orders.models import Order
 from logistics.models import DeliveryReport, CourierPerformance, CourierVehicle, Vehicle
@@ -29,18 +29,13 @@ def profile(request):
 def profile_edit(request):
     """Редактирование профиля пользователя"""
     if request.method == 'POST':
-        form = CustomUserChangeForm(request.POST, request.FILES, instance=request.user)
+        form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
-            # Проверка прав доступа
-            if not request.user.is_admin() and 'password' in form.cleaned_data:
-                messages.error(request, 'У вас нет прав для изменения пароля')
-                return redirect('users:profile')
-            
             form.save()
             messages.success(request, 'Профиль успешно обновлен')
             return redirect('users:profile')
     else:
-        form = CustomUserChangeForm(instance=request.user)
+        form = ProfileEditForm(instance=request.user)
     
     return render(request, 'users/profile_edit.html', {'form': form})
 

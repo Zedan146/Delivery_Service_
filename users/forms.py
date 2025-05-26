@@ -17,23 +17,22 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class CustomUserChangeForm(UserChangeForm):
-    """Форма редактирования пользователя"""
+    """Форма редактирования пользователя для админки"""
     def __init__(self, *args, **kwargs):
         user = kwargs.get('instance', None)
         super().__init__(*args, **kwargs)
         # Русские метки
         self.fields['username'].label = 'Имя пользователя'
+        self.fields['first_name'].label = 'Имя'
+        self.fields['last_name'].label = 'Фамилия'
         self.fields['email'].label = 'Email'
         self.fields['phone_number'].label = 'Телефон'
-        self.fields['address'].label = 'Адрес'
         if 'avatar' in self.fields:
             self.fields['avatar'].label = 'Аватар'
-        
         # Подсказка для телефона
         self.fields['phone_number'].widget.attrs.update({
             'placeholder': 'Введите номер телефона'
         })
-        
         # Только админ может менять роль
         if user:
             if 'role' in self.fields and not (hasattr(user, 'is_admin') and user.is_admin()):
@@ -41,12 +40,29 @@ class CustomUserChangeForm(UserChangeForm):
 
     class Meta(UserChangeForm.Meta):
         model = CustomUser
-        fields = ('username', 'email', 'role', 'phone_number', 'address', 'avatar') 
+        fields = ('username', 'first_name', 'last_name', 'email', 'phone_number', 'address', 'avatar', 'password')
         fieldsets = (
             (None, {'fields': ('username', 'password')}),
             ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'phone_number', 'address', 'avatar')}),
             ('Роли и разрешения', {'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ) 
+        )
+
+class ProfileEditForm(forms.ModelForm):
+    """Форма для редактирования профиля пользователя (без пароля и адреса)"""
+    class Meta:
+        model = CustomUser
+        fields = ('username', 'first_name', 'last_name', 'email', 'phone_number', 'avatar')
+        labels = {
+            'username': 'Имя пользователя',
+            'first_name': 'Имя',
+            'last_name': 'Фамилия',
+            'email': 'Email',
+            'phone_number': 'Телефон',
+            'avatar': 'Аватар',
+        }
+        widgets = {
+            'phone_number': forms.TextInput(attrs={'placeholder': 'Введите номер телефона'})
+        }
 
 class StaffCreationForm(forms.ModelForm):
     """Форма создания сотрудника (курьер или логист)"""

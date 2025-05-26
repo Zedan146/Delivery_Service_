@@ -70,8 +70,10 @@ def order_detail(request, pk):
         messages.error(request, 'У вас нет прав для просмотра этого заказа')
         return HttpResponseForbidden()
     
+    default_address = order.client.addresses.filter(is_default=True).first()
     context = {
         'order': order,
+        'default_address': default_address,
     }
     
     # Добавляем список доступных курьеров для логиста и админа
@@ -98,98 +100,6 @@ def order_edit(request, pk):
         form = OrderForm(instance=order)
     
     return render(request, 'orders/order_form.html', {'form': form, 'title': 'Редактирование заказа'})
-
-@login_required
-def client_list(request):
-    """Представление для просмотра списка клиентов"""
-    if not (request.user.is_logistician() or request.user.is_admin()):
-        messages.error(request, 'У вас нет прав для просмотра списка клиентов')
-        return redirect('home')
-    
-    clients = Client.objects.all()
-    return render(request, 'clients/client_list.html', {'clients': clients})
-
-@login_required
-def client_create(request):
-    """Представление для создания нового клиента"""
-    if not (request.user.is_logistician() or request.user.is_admin()):
-        messages.error(request, 'У вас нет прав для создания клиентов')
-        return redirect('orders:client_list')
-    
-    if request.method == 'POST':
-        form = ClientForm(request.POST)
-        formset = ClientAddressInlineFormSet(request.POST)
-        if form.is_valid() and formset.is_valid():
-            client = form.save()
-            formset.instance = client
-            formset.save()
-            messages.success(request, 'Клиент успешно создан')
-            return redirect('orders:client_detail', pk=client.pk)
-    else:
-        form = ClientForm()
-        formset = ClientAddressInlineFormSet()
-    
-    return render(request, 'clients/client_form.html', {
-        'form': form,
-        'formset': formset,
-        'title': 'Создание клиента'
-    })
-
-@login_required
-def client_detail(request, pk):
-    """Представление для просмотра информации о клиенте"""
-    if not (request.user.is_logistician() or request.user.is_admin()):
-        messages.error(request, 'У вас нет прав для просмотра информации о клиентах')
-        return redirect('orders:client_list')
-    
-    client = get_object_or_404(Client, pk=pk)
-    return render(request, 'clients/client_detail.html', {'client': client})
-
-@login_required
-def client_edit(request, pk):
-    """Представление для редактирования информации о клиенте"""
-    client = get_object_or_404(Client, pk=pk)
-    if not (request.user.is_logistician() or request.user.is_admin()):
-        messages.error(request, 'У вас нет прав для редактирования клиентов')
-        return redirect('orders:client_list')
-
-    if request.method == 'POST':
-        form = ClientForm(request.POST, instance=client)
-        formset = ClientAddressInlineFormSet(request.POST, instance=client)
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            messages.success(request, 'Клиент успешно обновлен')
-            return redirect('orders:client_detail', pk=client.pk)
-    else:
-        form = ClientForm(instance=client)
-        formset = ClientAddressInlineFormSet(instance=client)
-
-    return render(request, 'clients/client_form.html', {
-        'form': form,
-        'formset': formset,
-    })
-
-@login_required
-def client_delete(request, pk):
-    """Удаление клиента с подтверждением"""
-    client = get_object_or_404(Client, pk=pk)
-    if not (request.user.is_logistician() or request.user.is_admin()):
-        messages.error(request, 'У вас нет прав для удаления клиентов')
-        return redirect('orders:client_list')
-
-    # Проверка на связанные заказы или адреса
-    has_orders = client.orders.exists() if hasattr(client, 'orders') else False
-    has_addresses = client.addresses.exists() if hasattr(client, 'addresses') else False
-    if (has_orders or has_addresses) and request.method == 'POST':
-        messages.error(request, 'Нельзя удалить клиента с существующими заказами или адресами. Сначала удалите все заказы и адреса клиента.')
-        return redirect('orders:client_detail', pk=client.pk)
-
-    if request.method == 'POST':
-        client.delete()
-        messages.success(request, 'Клиент успешно удалён')
-        return redirect('orders:client_list')
-    return render(request, 'clients/client_confirm_delete.html', {'client': client, 'has_orders': has_orders, 'has_addresses': has_addresses})
 
 def is_courier(user):
     return user.role == 'COURIER'

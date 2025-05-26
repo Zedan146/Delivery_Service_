@@ -9,13 +9,21 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="mb-0">Информация о клиенте</h2>
-                    <div>
-                        <a href="{% url 'orders:client_edit' client.pk %}" class="btn btn-warning">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'clients:client_edit' client.pk %}" class="btn btn-warning">
                             <i class="fas fa-edit"></i> Редактировать
                         </a>
-                        <a href="{% url 'orders:client_list' %}" class="btn btn-secondary">
+                        <a href="{% url 'clients:client_list' %}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> К списку клиентов
                         </a>
+                        {% if user.is_admin %}
+                            <form method="post" action="{% url 'clients:client_delete' client.pk %}" style="display:inline;" onsubmit="return confirm('Вы уверены, что хотите удалить клиента?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger" {% if active_orders_count > 0 %}disabled title="Нельзя удалить клиента с активными заказами"{% endif %}>
+                                    <i class="fas fa-trash"></i> Удалить
+                                </button>
+                            </form>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="card-body">

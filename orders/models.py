@@ -18,7 +18,7 @@ class Order(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='orders', verbose_name='Клиент')
     delivery_address = models.ForeignKey(
         ClientAddress,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='orders',
         verbose_name='Адрес доставки'
     )

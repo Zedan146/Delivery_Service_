@@ -51,10 +51,19 @@
                 
                 <div class="row mb-3">
                     <div class="col-sm-4">
+                        <strong>Дата создания:</strong>
+                    </div>
+                    <div class="col-sm-8">
+                        {{ order.created_at|date:"d.m.Y H:i" }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-4">
                         <strong>Сумма заказа:</strong>
                     </div>
                     <div class="col-sm-8">
-                        {{ order.order_amount }}
+                        {{ order.order_amount }} ₽
                     </div>
                 </div>
                 
@@ -63,7 +72,7 @@
                         <strong>Стоимость доставки:</strong>
                     </div>
                     <div class="col-sm-8">
-                        {{ order.delivery_cost }}
+                        {{ order.delivery_cost }} ₽
                     </div>
                 </div>
                 
@@ -116,7 +125,9 @@
                         <strong>ФИО:</strong>
                     </div>
                     <div class="col-sm-8">
-                        {{ order.client.last_name }} {{ order.client.first_name }} {{ order.client.middle_name }}
+                        <a href="{% url 'clients:client_detail' order.client.pk %}">
+                            {{ order.client.last_name }} {{ order.client.first_name }} {{ order.client.middle_name }}
+                        </a>
                     </div>
                 </div>
                 
@@ -125,7 +136,9 @@
                         <strong>Телефон:</strong>
                     </div>
                     <div class="col-sm-8">
-                        {{ order.client.phone_number }}
+                        <a href="tel:{{ order.client.phone_number }}">
+                            {{ order.client.phone_number }}
+                        </a>
                     </div>
                 </div>
                 
@@ -135,30 +148,23 @@
                         <strong>Email:</strong>
                     </div>
                     <div class="col-sm-8">
-                        {{ order.client.email }}
+                        <a href="mailto:{{ order.client.email }}">
+                            {{ order.client.email }}
+                        </a>
                     </div>
                 </div>
                 {% endif %}
                 
                 <div class="row mb-3">
                     <div class="col-sm-4">
-                        <strong>Адреса клиента:</strong>
+                        <strong>Адрес по умолчанию:</strong>
                     </div>
                     <div class="col-sm-8">
-                        {% for address in order.client.addresses.all %}
-                            <div class="mb-2">
-                                {{ address.get_full_address }}
-                                {% if address.postal_code %}
-                                    <span class="text-muted">({{ address.postal_code }})</span>
-                                {% endif %}
-                                {% if address.is_default %}
-                                    <span class="badge bg-primary">По умолчанию</span>
-                                {% endif %}
-                                {% if address.courier_notes %}
-                                    <div class="small text-muted">Комментарий: {{ address.courier_notes }}</div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
+                        {% if default_address %}
+                            {{ default_address.get_full_address }}
+                        {% else %}
+                            <span class="text-muted">нет</span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -220,7 +226,7 @@
             </a>
         {% endif %}
         {% if user.is_admin and order.status == 'CANCELLED' %}
-            <a href="{% url 'orders:order_delete' order.pk %}" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите удалить отменённый заказ?')">
+            <a href="{% url 'orders:order_delete' order.pk %}" class="btn btn-danger">
                 <i class="fas fa-trash"></i> Удалить заказ
             </a>
         {% endif %}

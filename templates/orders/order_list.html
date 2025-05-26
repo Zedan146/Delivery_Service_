@@ -4,15 +4,27 @@
 
 {% block content %}
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Список заказов</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="mb-0">Список заказов</h2>
         {% if user.is_logistician or user.is_admin %}
-        <div>
-            <a href="{% url 'orders:delivery_report' %}" class="btn btn-primary" target="_blank">
-                <i class="fas fa-file-pdf"></i> Отчет по доставкам
-            </a>
-            <a href="{% url 'orders:order_create' %}" class="btn btn-success">
-                <i class="fas fa-plus"></i> Новый заказ
+        <div class="d-flex align-items-end gap-2 flex-wrap">
+            <form method="get" action="{% url 'orders:delivery_report' %}" target="_blank" class="d-flex align-items-end gap-2 flex-wrap bg-light p-2 rounded shadow-sm">
+                <div>
+                    <label for="start_date" class="form-label mb-1 small text-secondary">C:</label>
+                    <input type="date" id="start_date" name="start_date" class="form-control form-control-sm" value="{{ request.GET.start_date }}">
+                </div>
+                <div>
+                    <label for="end_date" class="form-label mb-1 small text-secondary">По:</label>
+                    <input type="date" id="end_date" name="end_date" class="form-control form-control-sm" value="{{ request.GET.end_date }}">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm d-flex align-items-center gap-1 mt-3 mt-sm-0">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Отчет по доставкам</span>
+                </button>
+            </form>
+            <a href="{% url 'orders:order_create' %}" class="btn btn-success d-flex align-items-center gap-1 ms-2">
+                <i class="fas fa-plus"></i>
+                <span>Новый заказ</span>
             </a>
         </div>
         {% endif %}
@@ -51,7 +63,7 @@
                             <td><a href="{% url 'orders:order_detail' order.pk %}">
                                 {{ order.order_number }}</a></td>
                             <td>{{ order.client }}</td>
-                            <td>{{ order.delivery_address.address }}</td>
+                            <td>{{ order.delivery_address.get_full_address }}</td>
                             <td>{{ order.order_amount }}</td>
                             <td>{{ order.delivery_cost }}</td>
                             <td>

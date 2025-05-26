@@ -25,7 +25,7 @@
                     <div class="row mb-3">
                         <div class="col-sm-4 fw-bold">Клиент:</div>
                         <div class="col-sm-8">
-                            <a href="{% url 'orders:client_detail' report.order.client.pk %}">
+                            <a href="{% url 'clients:client_detail' report.order.client.pk %}">
                                 {{ report.order.client.last_name }} {{ report.order.client.first_name }} {{ report.order.client.middle_name }}
                             </a>
                         </div>

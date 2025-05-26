@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Подтверждение удаления клиента{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">Подтверждение удаления</h2>
+                </div>
+                <div class="card-body">
+                    {% if active_orders_count > 0 %}
+                        <div class="alert alert-danger">
+                            <h4 class="alert-heading">Невозможно удалить клиента</h4>
+                            <p>У клиента есть активные заказы ({{ active_orders_count }}). Сначала необходимо завершить или отменить все активные заказы.</p>
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'clients:client_detail' client.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Вернуться к клиенту
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="mb-4">Вы действительно хотите удалить клиента "{{ client.get_full_name }}"?</p>
+                        <p class="text-muted mb-4">Это действие нельзя будет отменить. Все адреса клиента будут удалены автоматически.</p>
+                        
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{% url 'clients:client_detail' client.pk %}" class="btn btn-secondary me-2">
+                                    <i class="fas fa-times"></i> Отмена
+                                </a>
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Удалить
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

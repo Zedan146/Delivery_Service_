@@ -12,10 +12,6 @@ urlpatterns = [
     path('<int:pk>/assign-courier/', views.order_assign_courier, name='order_assign_courier'),
     path('<int:pk>/delete/', views.order_delete, name='order_delete'),
     path('orders/<int:pk>/receipt/', views.order_receipt_pdf, name='order_receipt'),
-    path('clients/', views.client_list, name='client_list'),
-    path('clients/create/', views.client_create, name='client_create'),
-    path('clients/<int:pk>/', views.client_detail, name='client_detail'),
-    path('clients/<int:pk>/edit/', views.client_edit, name='client_edit'),
     path('delivery-report/', views.delivery_report_pdf, name='delivery_report'),
     path('get-client-addresses/', views.get_client_addresses, name='get_client_addresses'),
 ] 
