@@ -31,7 +31,7 @@ delivery_system/
 ## Технические особенности
 
 - Django 5.2
-- SQLite (для разработки)
+- PostgreeSQL
 - WeasyPrint для генерации PDF
 - Оптимизированные запросы к БД
 - Кэширование статусов транспортных средств
@@ -79,14 +79,6 @@ python manage.py createsuperuser
 
 ```bash
 python manage.py runserver
-```
-
-## Разработка
-
-### Создание тестовых данных
-
-```bash
-python create_test_data.py
 ```
 
 ## Дополнительная информация
